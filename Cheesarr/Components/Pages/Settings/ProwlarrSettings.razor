@@ -1,0 +1,47 @@
+@page "/prowlarr"
+@using Cheesarr.Settings
+
+@inject SettingsService SettingsService
+@inject ILogger<ProwlarrSettings> Logger
+
+<PageTitle>Prowlarr Settings</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Prowlarr</MudText>
+
+<EditForm Model="@_settings" OnValidSubmit="OnSaveClicked">
+    <DataAnnotationsValidator/>
+
+    <MudStack Spacing="2">
+        <MudTextField Label="URL" Variant="Variant.Filled" @bind-Value="@_settings.Url" InputType="InputType.Url"
+                      For="() => _settings.Url"
+                      HelperText="The full url to your Prowlarr instance, e.g. http://localhost:8976/"/>
+
+        <MudTextField Label="API Key" Variant="Variant.Filled"
+                      @bind-Value="@_settings.APIKey" For="() => _settings.APIKey"
+                      HelperText="The API key of your Prowlarr instance"/>
+
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" FullWidth="true" Color="Color.Primary"
+                   Class="ml-auto">Save
+        </MudButton>
+    </MudStack>
+</EditForm>
+
+
+@code {
+    
+    private ProwlarrSettingsData _settings = null!;
+
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation("OnInitialized!");
+        _settings = SettingsService.GetSettings<ProwlarrSettingsData>();
+    }
+
+    private void OnSaveClicked()
+    {
+        SettingsService.SaveSettings(_settings);
+
+        Logger.LogInformation("Settings saved");
+    }
+
+}

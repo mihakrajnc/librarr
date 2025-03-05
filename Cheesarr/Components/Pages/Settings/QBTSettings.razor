@@ -1,0 +1,60 @@
+@page "/qbt"
+@using Cheesarr.Settings
+
+@inject SettingsService SettingsService
+@inject ILogger<ProwlarrSettings> Logger
+
+<PageTitle>qBittorrent Settings</PageTitle>
+
+
+<MudText Typo="Typo.h3" GutterBottom="true">qBittorrent</MudText>
+
+<MudForm @bind-IsValid="@_formValid">
+    <MudStack Spacing="2">
+        <MudTextField Label="URL" Variant="Variant.Filled" @bind-Value="@_settings.Url"
+                      ErrorText="URL cannot be empty"
+                      HelperText="The full url to your Prowlarr instance, e.g. http://localhost:8976/" Required="true"
+                      RequiredError="URL is required"
+                      T="string"/>
+        <MudTextField Label="API Key" ErrorText="API key cannot be empty" Variant="Variant.Filled"
+                      @bind-Value="@_settings.APIKey"
+                      HelperText="The API key of your Prowlarr instance" Required="true"
+                      RequiredError="API Key is required"
+                      T="string"/>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="OnSaveClicked">Save
+        </MudButton>
+    </MudStack>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!_formValid)" Class="ml-auto"
+               OnClick="OnSaveClicked"
+               EndIcon="@Icons.Material.Filled.Save">Save
+    </MudButton>
+
+</MudForm>
+
+
+@code {
+    private ProwlarrSettingsData _settings = null!;
+
+    private bool _formValid;
+
+    protected override void OnInitialized()
+    {
+        _settings = SettingsService.GetSettings<ProwlarrSettingsData>();
+    }
+
+    private void OnSaveClicked()
+    {
+        if (!_formValid)
+        {
+            Logger.LogError("Form not valid but save clicked");
+            return;
+        }
+
+        SettingsService.SaveSettings(_settings);
+
+        Logger.LogInformation("Settings saved");
+    }
+
+}
