@@ -1,4 +1,8 @@
-﻿@inherits LayoutComponentBase
+﻿@using Cheesarr.Services
+@inherits LayoutComponentBase
+
+@inject ISnackbar Snackbar
+@inject GrabStateUpdater GrabStateUpdater
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode"/>
 <MudPopoverProvider/>
@@ -36,11 +40,17 @@
     {
         base.OnInitialized();
 
-        _theme = new()
+        _theme = new MudTheme
         {
             PaletteLight = _lightPalette,
             PaletteDark = _darkPalette,
             LayoutProperties = new LayoutProperties()
+        };
+        
+        GrabStateUpdater.NumberChanged += (_, e) =>
+        {
+            Snackbar.Add($"Number changed to {e}", Severity.Success);
+            InvokeAsync(StateHasChanged);
         };
     }
 
@@ -93,7 +103,7 @@
         OverlayLight = "#1e1e2d80",
     };
 
-    public string DarkLightModeButtonIcon => _isDarkMode switch
+    private string DarkLightModeButtonIcon => _isDarkMode switch
     {
         true => Icons.Material.Rounded.AutoMode,
         false => Icons.Material.Outlined.DarkMode,

@@ -1,0 +1,76 @@
+﻿@page "/search"
+@using Cheesarr.Data
+@using Cheesarr.Model
+@using Cheesarr.Services
+
+@inject HttpClient         HttpClient
+@inject NavigationManager  NavigationManager
+@inject ILogger<Search>    Logger;
+@inject OpenLibraryService OLS;
+@inject CheesarrDbContext db
+
+<PageTitle>Book Search</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Search</MudText>
+
+<MudTextField Label="Book Title" Variant="Variant.Filled" @bind-Value="@_searchTerm" InputType="InputType.Search"
+              Required="true" RequiredError="You can't search for nothing"
+              HelperText="The title of your book"/>
+
+<MudButton Class="mb-10" Color="Color.Primary" Variant="Variant.Filled" @onclick="OnSearchClicked">Search</MudButton>
+
+<MudTable Items="@_books" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading" LoadingProgressColor="Color.Info">
+    <HeaderContent>
+        <MudTh>ID</MudTh>
+        <MudTh>Title</MudTh>
+        <MudTh>Author</MudTh>
+        <MudTh>Published</MudTh>
+        <MudTh>Grab</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="ID">@context.Key</MudTd>
+        <MudTd DataLabel="Title">@context.Title</MudTd>
+        <MudTd DataLabel="Author">@string.Join(", ", context.AuthorName)</MudTd>
+        <MudTd DataLabel="Published">@context.FirstPublishYear</MudTd>
+        <MudTd DataLabel="">
+            <MudFab Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="() => OnAddClicked(context)"/>
+        </MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager/>
+    </PagerContent>
+</MudTable>
+
+@code {
+    private string _searchTerm = "";
+    private bool _loading;
+
+    private List<OpenLibraryResponse.Document> _books = new();
+
+    private async Task OnSearchClicked()
+    {
+        _loading = true;
+
+        _books.Clear();
+
+        _books = await OLS.SearchBooksAsync(_searchTerm);
+
+        _loading = false;
+    }
+
+    private async Task OnAddClicked(OpenLibraryResponse.Document book)
+    {
+        Logger.LogInformation($"Saving {book.Title} to DB");
+
+        var bookEntry = new BookEntry
+        {
+            Key = book.Key,
+            Title = book.Title,
+            Author = book.AuthorName.FirstOrDefault() ?? string.Empty,
+            FirstPublishYear = book.FirstPublishYear
+        };
+
+        db.Books.Add(bookEntry);
+        await db.SaveChangesAsync();
+    }
+}

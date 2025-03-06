@@ -1,11 +1,13 @@
 ﻿<MudNavMenu>
     <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
-    <MudNavLink Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">Counter</MudNavLink>
-
-    <MudNavLink Href="weather" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">Weather</MudNavLink>
+    @* <MudNavLink Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">Counter</MudNavLink> *@
+    
+    <MudNavLink Href="books" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.LibraryBooks">Books</MudNavLink>
+    <MudNavLink Href="search" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Search">Search</MudNavLink>
 
     <MudNavGroup Title="Settings" Icon="@Icons.Material.Filled.Settings">
         <MudNavLink Href="prowlarr" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.List">Prowlarr</MudNavLink>
+        <MudNavLink Href="qbt" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.List">qBittorrent</MudNavLink>
     </MudNavGroup>
     
 </MudNavMenu>

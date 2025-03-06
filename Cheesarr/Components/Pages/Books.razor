@@ -1,0 +1,59 @@
+﻿@page "/books"
+@using Cheesarr.Data
+@using Cheesarr.Model
+@using Microsoft.EntityFrameworkCore
+
+
+@inject ILogger<Search>   Logger;
+@inject CheesarrDbContext db
+
+<PageTitle>Books</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Books</MudText>
+
+<MudTable Items="@_books" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading" LoadingProgressColor="Color.Info">
+    <HeaderContent>
+        <MudTh>ID</MudTh>
+        <MudTh>Title</MudTh>
+        <MudTh>Author</MudTh>
+        <MudTh>Published</MudTh>
+        <MudTh>Status</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="ID">@context.Key</MudTd>
+        <MudTd DataLabel="Title">@context.Title</MudTd>
+        <MudTd DataLabel="Author">@context.Author</MudTd>
+        <MudTd DataLabel="Published">@context.FirstPublishYear</MudTd>
+        <MudTd DataLabel="Status">@context.Status.ToString()</MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager/>
+    </PagerContent>
+</MudTable>
+
+@code {
+
+    private bool _loading;
+
+    private List<BookEntry> _books = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        try
+        {
+            _books = await db.Books.ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Failed to load books: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+        }
+        
+        
+    }
+
+}
