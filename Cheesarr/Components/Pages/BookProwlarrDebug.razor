@@ -1,0 +1,54 @@
+@page "/book/{id:int}"
+@using System.Net
+@using Cheesarr.Data
+@using Cheesarr.Model
+@using Cheesarr.Services
+
+@inject NavigationManager NavManager
+@inject ProwlarrService   ProwlarrService
+@inject CheesarrDbContext db
+
+
+<MudTable Items="@_results" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading" LoadingProgressColor="Color.Info">
+    <HeaderContent>
+        <MudTh>Title</MudTh>
+        <MudTh>Grabs</MudTh>
+        <MudTh>Seeders</MudTh>
+        <MudTh>Indexer</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Title">@context.title</MudTd>
+        <MudTd DataLabel="Grabs">@context.grabs</MudTd>
+        <MudTd DataLabel="Seeders">@context.seeders</MudTd>
+        <MudTd DataLabel="Indexer">@context.indexer</MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager/>
+    </PagerContent>
+</MudTable>
+
+<MudButton OnClick="GoBack">Back</MudButton>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private List<ProwlarrItem> _results = [];
+
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBook(Id);
+    }
+
+    private async Task LoadBook(int id)
+    {
+        var book = await db.Books.FindAsync(id);
+        
+        _results = await ProwlarrService.Search(book.Title, true, true);
+
+        _loading = false;
+    }
+
+    private void GoBack() => NavManager.NavigateTo("/books");
+}

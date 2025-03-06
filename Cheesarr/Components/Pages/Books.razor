@@ -6,6 +6,7 @@
 
 @inject ILogger<Search>   Logger;
 @inject CheesarrDbContext db
+@inject NavigationManager NavManager
 
 <PageTitle>Books</PageTitle>
 
@@ -14,17 +15,25 @@
 <MudTable Items="@_books" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading" LoadingProgressColor="Color.Info">
     <HeaderContent>
         <MudTh>ID</MudTh>
+        <MudTh>Key</MudTh>
         <MudTh>Title</MudTh>
         <MudTh>Author</MudTh>
         <MudTh>Published</MudTh>
         <MudTh>Status</MudTh>
+        <MudTh>Find</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="ID">@context.Key</MudTd>
+        <MudTd DataLabel="ID">@context.Id</MudTd>
+        <MudTd DataLabel="Key">@context.Key</MudTd>
         <MudTd DataLabel="Title">@context.Title</MudTd>
         <MudTd DataLabel="Author">@context.Author</MudTd>
         <MudTd DataLabel="Published">@context.FirstPublishYear</MudTd>
         <MudTd DataLabel="Status">@context.Status.ToString()</MudTd>
+        <MudTd DataLabel="Find">
+            <MudButton OnClick="() =>NavigateToBook(context.Id)" Color="Color.Primary">
+                View Details
+            </MudButton>
+        </MudTd>
     </RowTemplate>
     <PagerContent>
         <MudTablePager/>
@@ -52,8 +61,8 @@
         {
             _loading = false;
         }
-        
-        
     }
+
+    private void NavigateToBook(int id) => NavManager.NavigateTo($"/book/{id}");
 
 }
