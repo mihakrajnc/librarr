@@ -1,7 +1,7 @@
 @page "/prowlarr"
 @using Cheesarr.Settings
 
-@inject SettingsService SettingsService
+@inject SettingsService           SettingsService
 @inject ILogger<ProwlarrSettings> Logger
 
 <PageTitle>Prowlarr Settings</PageTitle>
@@ -12,15 +12,22 @@
     <DataAnnotationsValidator/>
 
     <MudStack Spacing="2">
-        <MudTextField Label="URL" Variant="Variant.Filled" @bind-Value="@_settings.Url" InputType="InputType.Url"
-                      For="() => _settings.Url"
-                      HelperText="The full url to your Prowlarr instance, e.g. http://localhost:8976/"/>
+        <MudTextField Label="Host" Variant="Variant.Filled" @bind-Value="@_settings.Host" InputType="InputType.Url"
+                      For="() => _settings.Host"
+                      HelperText="The host of your Prowlarr instance, e.g. localhost"/>
+
+        <MudTextField Label="Port" Variant="Variant.Filled" @bind-Value="@_settings.Port" InputType="InputType.Url"
+                      For="() => _settings.Port"
+                      HelperText="The port of your Prowlarr instance, e.g. 9696"/>
+
+        <MudCheckBox Label="Use SSL" @bind-Value="_settings.UseSSL" Color="Color.Primary"/>
 
         <MudTextField Label="API Key" Variant="Variant.Filled"
                       @bind-Value="@_settings.APIKey" For="() => _settings.APIKey"
                       HelperText="The API key of your Prowlarr instance"/>
 
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" FullWidth="true" Color="Color.Primary"
+        <MudButton ButtonType="ButtonType.Submit" OnClick="OnSaveClicked" Variant="Variant.Filled" FullWidth="true"
+                   Color="Color.Primary"
                    Class="ml-auto">Save
         </MudButton>
     </MudStack>
@@ -28,12 +35,11 @@
 
 
 @code {
-    
+
     private ProwlarrSettingsData _settings = null!;
 
     protected override void OnInitialized()
     {
-        Logger.LogInformation("OnInitialized!");
         _settings = SettingsService.GetSettings<ProwlarrSettingsData>();
     }
 
@@ -41,7 +47,7 @@
     {
         SettingsService.SaveSettings(_settings);
 
-        Logger.LogInformation("Settings saved");
+        Logger.LogInformation("Prowlarr settings saved");
     }
 
 }

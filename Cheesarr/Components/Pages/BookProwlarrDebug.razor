@@ -7,20 +7,30 @@
 @inject NavigationManager NavManager
 @inject ProwlarrService   ProwlarrService
 @inject CheesarrDbContext db
+@inject QBTService qbtService
 
 
-<MudTable Items="@_results" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading" LoadingProgressColor="Color.Info">
+<MudTable Items="@_results" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading"
+          LoadingProgressColor="Color.Info">
     <HeaderContent>
         <MudTh>Title</MudTh>
         <MudTh>Grabs</MudTh>
         <MudTh>Seeders</MudTh>
         <MudTh>Indexer</MudTh>
+        <MudTh>Grab</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="Title">@context.title</MudTd>
+        <MudTd DataLabel="Title">
+            <MudLink Target="_blank" Href="@context.infoUrl">@context.title</MudLink>
+        </MudTd>
         <MudTd DataLabel="Grabs">@context.grabs</MudTd>
         <MudTd DataLabel="Seeders">@context.seeders</MudTd>
         <MudTd DataLabel="Indexer">@context.indexer</MudTd>
+        <MudTd DataLabel="Grab">
+            <MudButton OnClick="() =>SendToDownloadClient(context)" Color="Color.Primary">
+                Grab
+            </MudButton>
+        </MudTd>
     </RowTemplate>
     <PagerContent>
         <MudTablePager/>
@@ -44,10 +54,15 @@
     private async Task LoadBook(int id)
     {
         var book = await db.Books.FindAsync(id);
-        
-        _results = await ProwlarrService.Search(book.Title, true, true);
+
+        _results = (await ProwlarrService.Search(book.Title, true, true)).OrderByDescending(pi => pi.grabs).ToList();
 
         _loading = false;
+    }
+
+    private async Task SendToDownloadClient(ProwlarrItem pi)
+    {
+        await qbtService.DownloadTorrent(pi.downloadUrl);
     }
 
     private void GoBack() => NavManager.NavigateTo("/books");

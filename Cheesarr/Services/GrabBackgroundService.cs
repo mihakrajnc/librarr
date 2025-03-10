@@ -6,12 +6,12 @@ public class GrabBackgroundService(GrabStateUpdater stateUpdater) : BackgroundSe
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            _number++;
-            stateUpdater.OnNumberUpdated(_number);
-            await Task.Delay(3000, stoppingToken);
-        }
+        // while (!stoppingToken.IsCancellationRequested)
+        // {
+        //     _number++;
+        //     stateUpdater.OnNumberUpdated(_number);
+        //     await Task.Delay(3000, stoppingToken);
+        // }
     }
 }
 

@@ -1,6 +1,19 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Cheesarr.Settings;
 
 public class QBTSettingsData
 {
+    [Required(ErrorMessage = "API Key is required")]
+    public string APIKey { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Host is required")]
+    public string Host { get; set; } = "localhost";
+
+    [Required(ErrorMessage = "Port is required")]
+    public int Port { get; set; } = 8090;
     
+    public bool UseSSL { get; set; } = false;
+
+    public string Category { get; set; } = string.Empty;
 }

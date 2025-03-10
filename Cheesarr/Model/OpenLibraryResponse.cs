@@ -2,26 +2,32 @@ using System.Text.Json.Serialization;
 
 namespace Cheesarr.Model;
 
-public class OpenLibraryResponse
-{
-    [JsonPropertyName("start")]     public int            Start    { get; set; }
-    [JsonPropertyName("num_found")] public int            NumFound { get; set; }
-    [JsonPropertyName("docs")]      public List<Document> Docs     { get; set; } = [];
+public record OLDoc(
+    IReadOnlyList<string> author_key,
+    IReadOnlyList<string> author_name,
+    string cover_edition_key,
+    int cover_i,
+    int edition_count,
+    int first_publish_year,
+    bool has_fulltext,
+    IReadOnlyList<string> ia,
+    string ia_collection_s,
+    string key,
+    IReadOnlyList<string> language,
+    bool public_scan_b,
+    string title,
+    string lending_edition_s,
+    string lending_identifier_s,
+    string subtitle
+);
 
-    public class Document
-    {
-        [JsonPropertyName("key")]         public string       Key        { get; set; } = string.Empty;
-        [JsonPropertyName("title")]       public string       Title      { get; set; } = string.Empty;
-        [JsonPropertyName("author_name")] public List<string> AuthorName { get; set; } = [];
-        [JsonPropertyName("author_key")]  public List<string> AuthorKey  { get; set; } = [];
-
-        [JsonPropertyName("first_publish_year")]
-        public int FirstPublishYear { get; set; }
-
-        [JsonPropertyName("cover_i")]       public int          CoverI       { get; set; }
-        [JsonPropertyName("has_fulltext")]  public bool         HasFulltext  { get; set; }
-        [JsonPropertyName("edition_count")] public int          EditionCount { get; set; }
-        [JsonPropertyName("ia")]            public List<string> Ia           { get; set; } = [];
-        [JsonPropertyName("public_scan_b")] public bool         PublicScanB  { get; set; }
-    }
-}
+public record OpenLibraryResponse(
+    int numFound,
+    int start,
+    bool numFoundExact,
+    int num_found,
+    string documentation_url,
+    string q,
+    object offset,
+    IReadOnlyList<OLDoc> docs
+);

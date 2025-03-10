@@ -1,60 +1,55 @@
 @page "/qbt"
 @using Cheesarr.Settings
 
-@inject SettingsService SettingsService
+@inject SettingsService           SettingsService
 @inject ILogger<ProwlarrSettings> Logger
 
 <PageTitle>qBittorrent Settings</PageTitle>
 
-
 <MudText Typo="Typo.h3" GutterBottom="true">qBittorrent</MudText>
 
-<MudForm @bind-IsValid="@_formValid">
+<EditForm Model="@_settings" OnValidSubmit="OnSaveClicked">
+    <DataAnnotationsValidator/>
+
     <MudStack Spacing="2">
-        <MudTextField Label="URL" Variant="Variant.Filled" @bind-Value="@_settings.Url"
-                      ErrorText="URL cannot be empty"
-                      HelperText="The full url to your Prowlarr instance, e.g. http://localhost:8976/" Required="true"
-                      RequiredError="URL is required"
+        <MudTextField Label="Host" Variant="Variant.Filled" @bind-Value="@_settings.Host" InputType="InputType.Url"
+                      For="() => _settings.Host"
+                      HelperText="The host of your QBT instance, e.g. localhost"/>
+
+        <MudTextField Label="Port" Variant="Variant.Filled" @bind-Value="@_settings.Port" InputType="InputType.Url"
+                      For="() => _settings.Port"
+                      HelperText="The port of your QBT instance, e.g. 8090"/>
+
+        <MudCheckBox Label="Use SSL" @bind-Value="_settings.UseSSL" Color="Color.Primary"/>
+
+        <MudTextField Label="API Key" Variant="Variant.Filled"
+                      @bind-Value="@_settings.APIKey" For="() => _settings.APIKey"
+                      HelperText="The API key of your Prowlarr instance"/>
+
+        <MudTextField Label="Category" Variant="Variant.Filled"
+                      @bind-Value="@_settings.Category"
+                      HelperText="(optional) Category of the torrent"
                       T="string"/>
-        <MudTextField Label="API Key" ErrorText="API key cannot be empty" Variant="Variant.Filled"
-                      @bind-Value="@_settings.APIKey"
-                      HelperText="The API key of your Prowlarr instance" Required="true"
-                      RequiredError="API Key is required"
-                      T="string"/>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
-                   OnClick="OnSaveClicked">Save
+
+        <MudButton ButtonType="ButtonType.Submit" OnClick="OnSaveClicked" Variant="Variant.Filled" FullWidth="true" Color="Color.Primary"
+                   Class="ml-auto">Save
         </MudButton>
     </MudStack>
-
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!_formValid)" Class="ml-auto"
-               OnClick="OnSaveClicked"
-               EndIcon="@Icons.Material.Filled.Save">Save
-    </MudButton>
-
-</MudForm>
-
+</EditForm>
 
 @code {
-    private ProwlarrSettingsData _settings = null!;
-
-    private bool _formValid;
-
+    private QBTSettingsData _settings = null!;
+    
     protected override void OnInitialized()
     {
-        _settings = SettingsService.GetSettings<ProwlarrSettingsData>();
+        _settings = SettingsService.GetSettings<QBTSettingsData>();
     }
 
     private void OnSaveClicked()
     {
-        if (!_formValid)
-        {
-            Logger.LogError("Form not valid but save clicked");
-            return;
-        }
-
         SettingsService.SaveSettings(_settings);
 
-        Logger.LogInformation("Settings saved");
+        Logger.LogInformation("QBT settings saved");
     }
 
 }

@@ -20,6 +20,7 @@
         <MudTh>Author</MudTh>
         <MudTh>Published</MudTh>
         <MudTh>Status</MudTh>
+        <MudTh>Cover</MudTh>
         <MudTh>Find</MudTh>
     </HeaderContent>
     <RowTemplate>
@@ -29,9 +30,15 @@
         <MudTd DataLabel="Author">@context.Author</MudTd>
         <MudTd DataLabel="Published">@context.FirstPublishYear</MudTd>
         <MudTd DataLabel="Status">@context.Status.ToString()</MudTd>
+        <MudTd DataLabel="Cover">
+            <MudImage Src="@($"https://covers.openlibrary.org/b/olid/{context.CoverEditionKey}-M.jpg")"
+                      Width="100" Height="100"
+                      Alt="Icon" Elevation="0"
+                      Class="rounded-lg"/>
+        </MudTd>
         <MudTd DataLabel="Find">
             <MudButton OnClick="() =>NavigateToBook(context.Id)" Color="Color.Primary">
-                View Details
+                Search torrents
             </MudButton>
         </MudTd>
     </RowTemplate>

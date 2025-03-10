@@ -1,8 +1,5 @@
 namespace Cheesarr.Model;
 
-public class ProwlarrResponse; // Only really here so I can CMD + O here
-
-
 public class ProwlarrItem
 {
     public string         guid         { get; set; }

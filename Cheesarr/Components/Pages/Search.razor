@@ -7,7 +7,7 @@
 @inject NavigationManager  NavigationManager
 @inject ILogger<Search>    Logger;
 @inject OpenLibraryService OLS;
-@inject CheesarrDbContext db
+@inject CheesarrDbContext  db
 
 <PageTitle>Book Search</PageTitle>
 
@@ -28,12 +28,13 @@
         <MudTh>Grab</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="ID">@context.Key</MudTd>
-        <MudTd DataLabel="Title">@context.Title</MudTd>
-        <MudTd DataLabel="Author">@string.Join(", ", context.AuthorName)</MudTd>
-        <MudTd DataLabel="Published">@context.FirstPublishYear</MudTd>
+        <MudTd DataLabel="ID">@context.key</MudTd>
+        <MudTd DataLabel="Title">@context.title</MudTd>
+        <MudTd DataLabel="Author">@string.Join(", ", context.author_name)</MudTd>
+        <MudTd DataLabel="Published">@context.first_publish_year</MudTd>
         <MudTd DataLabel="">
-            <MudFab Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="() => OnAddClicked(context)"/>
+            <MudFab Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
+                    OnClick="() => OnAddClicked(context)"/>
         </MudTd>
     </RowTemplate>
     <PagerContent>
@@ -45,7 +46,7 @@
     private string _searchTerm = "";
     private bool _loading;
 
-    private List<OpenLibraryResponse.Document> _books = new();
+    private List<OLDoc> _books = new();
 
     private async Task OnSearchClicked()
     {
@@ -53,24 +54,19 @@
 
         _books.Clear();
 
-        _books = await OLS.SearchBooksAsync(_searchTerm);
+        _books = (await OLS.SearchBooksAsync(_searchTerm)).ToList();
 
         _loading = false;
     }
 
-    private async Task OnAddClicked(OpenLibraryResponse.Document book)
+    private async Task OnAddClicked(OLDoc book)
     {
-        Logger.LogInformation($"Saving {book.Title} to DB");
+        Logger.LogInformation($"Saving {book.title} to DB");
 
-        var bookEntry = new BookEntry
-        {
-            Key = book.Key,
-            Title = book.Title,
-            Author = book.AuthorName.FirstOrDefault() ?? string.Empty,
-            FirstPublishYear = book.FirstPublishYear
-        };
 
-        db.Books.Add(bookEntry);
+        var be = await OLS.AddBook(book);
+        
         await db.SaveChangesAsync();
     }
+
 }

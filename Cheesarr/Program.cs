@@ -42,7 +42,15 @@ builder.Services.AddSingleton<SettingsService>();
 builder.Services.AddHttpClient<ProwlarrService>((sp, client) =>
 {
     var settings = sp.GetRequiredService<SettingsService>().GetSettings<ProwlarrSettingsData>();
-    client.BaseAddress = new Uri(settings.Url);
+    
+    client.BaseAddress = new Uri($"{(settings.UseSSL ? "https": "http")}://{settings.Host}:{settings.Port}");
+    client.DefaultRequestHeaders.Add("X-Api-Key", settings.APIKey);
+});
+
+builder.Services.AddHttpClient<QBTService>((sp, client) =>
+{
+    var settings = sp.GetRequiredService<SettingsService>().GetSettings<QBTSettingsData>();
+    client.BaseAddress = new Uri($"{(settings.UseSSL ? "https": "http")}://{settings.Host}:{settings.Port}");
     client.DefaultRequestHeaders.Add("X-Api-Key", settings.APIKey);
 });
 
@@ -70,6 +78,7 @@ var scopeFactory = app.Services.GetRequiredService<IServiceScopeFactory>();
 using (var scope = scopeFactory.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CheesarrDbContext>();
+    db.Database.EnsureDeleted();
     if (db.Database.EnsureCreated())
     {
         SeedData.Initialize(db);

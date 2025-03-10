@@ -1,0 +1,54 @@
+@page "/authors"
+@using Cheesarr.Data
+@using Cheesarr.Model
+@using Microsoft.EntityFrameworkCore
+
+@inject ILogger<Search>   Logger;
+@inject CheesarrDbContext db
+
+<h3>Authors</h3>
+
+<MudTable Items="@_authors" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading"
+          LoadingProgressColor="Color.Info">
+    <HeaderContent>
+        <MudTh>ID</MudTh>
+        <MudTh>OLID</MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh>BookCount</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="ID">@context.Id</MudTd>
+        <MudTd DataLabel="OLID">@context.OLID</MudTd>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="BookCount">@context.Books.Count</MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager/>
+    </PagerContent>
+</MudTable>
+
+
+@code {
+
+    private bool _loading;
+
+    private List<AuthorEntry> _authors = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        try
+        {
+            _authors = await db.Authors.ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Failed to load books: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+}
