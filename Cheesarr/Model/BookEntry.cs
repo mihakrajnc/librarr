@@ -34,5 +34,7 @@ public enum Status
 {
     Wanted,
     Grabbed,
+    Downloading,
     Downloaded,
+    Imported,
 }

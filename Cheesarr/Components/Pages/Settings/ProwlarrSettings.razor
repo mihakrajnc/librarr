@@ -22,7 +22,7 @@
 
         <MudCheckBox Label="Use SSL" @bind-Value="_settings.UseSSL" Color="Color.Primary"/>
 
-        <MudTextField Label="API Key" Variant="Variant.Filled"
+        <MudTextField Label="API Key" Variant="Variant.Filled" InputType="InputType.Password"
                       @bind-Value="@_settings.APIKey" For="() => _settings.APIKey"
                       HelperText="The API key of your Prowlarr instance"/>
 

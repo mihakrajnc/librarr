@@ -34,7 +34,7 @@ builder.Services.AddSqlite<CheesarrDbContext>("Data Source=db/mouse.db");
 builder.Services.AddHttpClient<OpenLibraryService>(client => { client.BaseAddress = new Uri("https://openlibrary.org/"); });
 // builder.Services.AddScoped<OpenLibraryService>();
 
-builder.Services.AddHostedService<GrabBackgroundService>();
+builder.Services.AddHostedService<QbtPoolBackgroundService>();
 builder.Services.AddSingleton<GrabStateUpdater>();
 
 builder.Services.AddSingleton<SettingsService>();

@@ -74,7 +74,9 @@ public class GrabService(ProwlarrService prowlarr, SettingsService settingsServi
             using var scope = ssfactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<CheesarrDbContext>();
 
-            book.EBookTorrentHash = hash;
+            book.EBookTorrentHash = hash.ToLowerInvariant();
+            book.Status = Status.Grabbed;
+            
             db.Books.Update(book);
             
             snackBus.ShowInfo($"Release grabbed for {book.Title}");
@@ -83,7 +85,7 @@ public class GrabService(ProwlarrService prowlarr, SettingsService settingsServi
     
     private Task<string?> DownloadItem(ParsedItem item)
     {
-        return qbtService.DownloadTorrent(item.DownloadURL);
+        return qbtService.AddTorrent(item.DownloadURL);
     }
 
     private class ParsedItem
@@ -93,12 +95,16 @@ public class GrabService(ProwlarrService prowlarr, SettingsService settingsServi
         public int Seeders;
         public int Leechers;
         public string DownloadURL;
+        public bool Vip;
         public HashSet<string> Formats;
 
         public static ParsedItem Create(ProwlarrItem pi)
         {
-            var tags = pi.title.Substring(pi.title.LastIndexOf('[') + 1,
-                pi.title.LastIndexOf(']') - pi.title.LastIndexOf('[') - 1)
+            var firstBracket = pi.title.IndexOf('[');
+            var secondBracket = pi.title.IndexOf(']', firstBracket + 1);
+            
+            var tags = pi.title.Substring(firstBracket + 1,
+                secondBracket - firstBracket - 1)
                 .Split(" / ");
             
             return new ParsedItem
@@ -109,6 +115,7 @@ public class GrabService(ProwlarrService prowlarr, SettingsService settingsServi
                 Seeders = pi.seeders,
                 Leechers = pi.leechers,
                 DownloadURL = pi.downloadUrl,
+                Vip = pi.title.EndsWith("[VIP]")
             };
         }
     }

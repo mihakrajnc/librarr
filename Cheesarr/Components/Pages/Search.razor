@@ -61,7 +61,13 @@
     private bool _loading;
 
     private List<OLDoc> _books = new();
-    
+    private HashSet<string> _addedBooks = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _addedBooks = await db.Books.Select(be => be.OLID).ToHashSetAsync();
+    }
+
     private async Task<bool> IsBookInDatabaseAsync(OLDoc book)
     {
         return await db.Books.AnyAsync(b => b.OLID == book.key);
@@ -69,7 +75,7 @@
 
     private bool IsBookAlreadyAdded(OLDoc book)
     {
-        return db.Books.Any(b => b.OLID == book.key);
+        return _addedBooks.Contains(book.key);
     }
 
     private async Task OnSearchClicked()
@@ -94,6 +100,7 @@
         Logger.LogInformation($"Saving {book.title} to DB");
 
         var be = await OLS.AddBook(book, _grabType);
+        _addedBooks.Add(book.key);
 
         if (_searchOnAdd)
         {

@@ -3,14 +3,11 @@
 @using Cheesarr.Model
 @using Cheesarr.Services
 @using Microsoft.EntityFrameworkCore
-@using SnackbarService = Cheesarr.Services.SnackMessageBus
 
 
 @inject ILogger<Search>   Logger;
 @inject CheesarrDbContext db
-@inject NavigationManager NavManager
 @inject GrabService       GrabService
-@inject SnackbarService SnackMessageBus;
 
 <PageTitle>Books</PageTitle>
 
@@ -18,7 +15,6 @@
 
 <MudTable Items="@_books" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading" LoadingProgressColor="Color.Info">
     <HeaderContent>
-        <MudTh>ID</MudTh>
         <MudTh>OLID</MudTh>
         <MudTh>Title</MudTh>
         <MudTh>Author</MudTh>
@@ -26,14 +22,14 @@
         <MudTh>EB Hash</MudTh>
         <MudTh>Cover</MudTh>
         <MudTh>Find</MudTh>
+        <MudTh>Remove</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="ID">@context.Id</MudTd>
-        <MudTd DataLabel="OLID">@context.OLID</MudTd>
+        <MudTd DataLabel="OLID">@context.OLID.Replace("/works/", "")</MudTd>
         <MudTd DataLabel="Title">@context.Title</MudTd>
-        <MudTd DataLabel="Author">@context.Author</MudTd>
+        <MudTd DataLabel="Author">@context.Author?.Name</MudTd>
         <MudTd DataLabel="Published">@context.FirstPublishYear</MudTd>
-        <MudTd DataLabel="EB Hash">@context.EBookTorrentHash.Substring(0, 7)</MudTd>
+        <MudTd DataLabel="EB Hash">@GetShortHash(context)</MudTd>
         <MudTd DataLabel="Cover">
             <MudImage Src="@($"https://covers.openlibrary.org/b/olid/{context.CoverEditionKey}-M.jpg")"
                       Width="100" Height="100"
@@ -43,6 +39,11 @@
         <MudTd DataLabel="Find">
             <MudButton OnClick="() => GrabBook(context)" Color="Color.Primary">
                 Grab
+            </MudButton>
+        </MudTd>
+        <MudTd DataLabel="Remove">
+            <MudButton OnClick="() => RemoveBook(context)" Color="Color.Primary">
+                X
             </MudButton>
         </MudTd>
     </RowTemplate>
@@ -73,13 +74,24 @@
             _loading = false;
         }
     }
-
-    private void NavigateToBook(int id) => NavManager.NavigateTo($"/book/{id}");
-
+    
     private async Task GrabBook(BookEntry book)
     {
-        SnackMessageBus.ShowInfo("Showing test snackbar.");
-
-        // await GrabService.SearchForBook(book);
+        await GrabService.SearchForBook(book);
     }
+
+    private string GetShortHash(BookEntry book)
+    {
+        if (string.IsNullOrEmpty(book.EBookTorrentHash)) return string.Empty;
+        
+        return book.EBookTorrentHash.Substring(0, 7) + "...";
+    }
+
+    private async Task RemoveBook(BookEntry book)
+    {
+        db.Books.Remove(book);
+        _books.Remove(book);
+        await db.SaveChangesAsync();
+    }
+
 }
