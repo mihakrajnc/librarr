@@ -1,12 +1,14 @@
 ﻿@page "/books"
 @using Cheesarr.Data
 @using Cheesarr.Model
+@using Cheesarr.Services
 @using Microsoft.EntityFrameworkCore
 
 
 @inject ILogger<Search>   Logger;
 @inject CheesarrDbContext db
 @inject NavigationManager NavManager
+@inject GrabService GrabService
 
 <PageTitle>Books</PageTitle>
 
@@ -19,7 +21,7 @@
         <MudTh>Title</MudTh>
         <MudTh>Author</MudTh>
         <MudTh>Published</MudTh>
-        <MudTh>Status</MudTh>
+        <MudTh>EB Hash</MudTh>
         <MudTh>Cover</MudTh>
         <MudTh>Find</MudTh>
     </HeaderContent>
@@ -29,7 +31,7 @@
         <MudTd DataLabel="Title">@context.Title</MudTd>
         <MudTd DataLabel="Author">@context.Author</MudTd>
         <MudTd DataLabel="Published">@context.FirstPublishYear</MudTd>
-        <MudTd DataLabel="Status">@context.Status.ToString()</MudTd>
+        <MudTd DataLabel="EB Hash">@context.EBookTorrentHash</MudTd>
         <MudTd DataLabel="Cover">
             <MudImage Src="@($"https://covers.openlibrary.org/b/olid/{context.CoverEditionKey}-M.jpg")"
                       Width="100" Height="100"
@@ -37,8 +39,8 @@
                       Class="rounded-lg"/>
         </MudTd>
         <MudTd DataLabel="Find">
-            <MudButton OnClick="() =>NavigateToBook(context.Id)" Color="Color.Primary">
-                Search torrents
+            <MudButton OnClick="() => GrabBook(context)" Color="Color.Primary">
+                Grab
             </MudButton>
         </MudTd>
     </RowTemplate>
@@ -72,4 +74,8 @@
 
     private void NavigateToBook(int id) => NavManager.NavigateTo($"/book/{id}");
 
+    private async Task GrabBook(BookEntry book)
+    {
+        await GrabService.SearchForBook(book);
+    }
 }

@@ -19,6 +19,12 @@
 
 <MudButton Class="mb-10" Color="Color.Primary" Variant="Variant.Filled" @onclick="OnSearchClicked">Search</MudButton>
 
+<MudRadioGroup @bind-Value="_grabType">
+    <MudRadio Value="@GrabType.EBook" Color="Color.Primary" Dense="true">EBook</MudRadio>
+    <MudRadio Value="@GrabType.Audiobook" Color="Color.Primary" Dense="true">Audiobook</MudRadio>
+    <MudRadio Value="@GrabType.Both" Color="Color.Primary" Dense="true">Both</MudRadio>
+</MudRadioGroup>
+
 <MudTable Items="@_books" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading" LoadingProgressColor="Color.Info">
     <HeaderContent>
         <MudTh>ID</MudTh>
@@ -43,6 +49,7 @@
 </MudTable>
 
 @code {
+    private GrabType _grabType = GrabType.EBook;
     private string _searchTerm = "";
     private bool _loading;
 
@@ -63,8 +70,7 @@
     {
         Logger.LogInformation($"Saving {book.title} to DB");
 
-
-        var be = await OLS.AddBook(book);
+        var be = await OLS.AddBook(book, _grabType);
         
         await db.SaveChangesAsync();
     }

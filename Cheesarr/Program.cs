@@ -38,6 +38,7 @@ builder.Services.AddHostedService<GrabBackgroundService>();
 builder.Services.AddSingleton<GrabStateUpdater>();
 
 builder.Services.AddSingleton<SettingsService>();
+builder.Services.AddSingleton<GrabService>();
 
 builder.Services.AddHttpClient<ProwlarrService>((sp, client) =>
 {
@@ -78,7 +79,10 @@ var scopeFactory = app.Services.GetRequiredService<IServiceScopeFactory>();
 using (var scope = scopeFactory.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CheesarrDbContext>();
-    db.Database.EnsureDeleted();
+    if(Environment.GetEnvironmentVariable("CLEAR_DB") == "true")
+    {
+        db.Database.EnsureDeleted();
+    }
     if (db.Database.EnsureCreated())
     {
         SeedData.Initialize(db);

@@ -10,13 +10,14 @@
           "ASPNETCORE_ENVIRONMENT": "Development"
         }
       },
-      "http NB": {
+      "http clear-db": {
         "commandName": "Project",
         "dotnetRunMessages": true,
-        "launchBrowser": false,
+        "launchBrowser": true,
         "applicationUrl": "http://localhost:5272",
         "environmentVariables": {
-          "ASPNETCORE_ENVIRONMENT": "Development"
+          "ASPNETCORE_ENVIRONMENT": "Development",
+          "CLEAR_DB": "true"
         }
       },
       "https": {

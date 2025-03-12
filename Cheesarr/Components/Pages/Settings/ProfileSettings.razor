@@ -1,0 +1,63 @@
+@page "/profiles"
+@using Cheesarr.Settings
+@using MudBlazor.Utilities
+
+@inject SettingsService SettingsService
+
+<MudText Typo="Typo.h3">EBooks</MudText>
+
+<MudDropContainer T="ProfileSettingsData.Profile.Format" Items="_profileSettingsData.EBookProfile.Formats"
+                  ItemsSelector="@((item, dropzone) => true)" ItemDropped="ItemUpdated"
+                  Class="d-flex flex-wrap flex-grow-1">
+    <ChildContent>
+        <MudDropZone T="ProfileSettingsData.Profile.Format" AllowReorder="true"
+                     Class="rounded mud-background-gray pa-6 ma-8 flex-grow-1">
+        </MudDropZone>
+    </ChildContent>
+    <ItemRenderer>
+        <MudPaper Elevation="25" Class="pa-4 my-4">@context.Name</MudPaper>
+    </ItemRenderer>
+</MudDropContainer>
+
+<MudText Typo="Typo.h3">Audiobooks</MudText>
+
+<MudDropContainer T="ProfileSettingsData.Profile.Format" Items="_profileSettingsData.AudiobookProfile.Formats"
+                  ItemsSelector="@((item, dropzone) => true)" ItemDropped="ItemUpdated"
+                  Class="d-flex flex-wrap flex-grow-1">
+    <ChildContent>
+        <MudDropZone T="ProfileSettingsData.Profile.Format" AllowReorder="true"
+                     Class="rounded mud-background-gray pa-6 ma-8 flex-grow-1">
+        </MudDropZone>
+    </ChildContent>
+    <ItemRenderer>
+        <MudPaper Elevation="25" Class="pa-4 my-4">@context.Name</MudPaper>
+    </ItemRenderer>
+</MudDropContainer>
+
+<MudButton ButtonType="ButtonType.Submit" OnClick="OnSaveClicked" Variant="Variant.Filled" FullWidth="true"
+           Color="Color.Primary"
+           Class="ml-auto">Save
+</MudButton>
+
+@code {
+
+    private ProfileSettingsData _profileSettingsData;
+
+    protected override void OnInitialized()
+    {
+        _profileSettingsData = SettingsService.GetSettings<ProfileSettingsData>();
+    }
+
+    private void ItemUpdated(MudItemDropInfo<ProfileSettingsData.Profile.Format> dropItem)
+    {
+        _profileSettingsData.EBookProfile.Formats.UpdateOrder(dropItem, item => item.Order);
+    }
+
+    private void OnSaveClicked()
+    {
+        _profileSettingsData.EBookProfile.Formats.Sort((a, b) => a.Order.CompareTo(b.Order));
+        _profileSettingsData.AudiobookProfile.Formats.Sort((a, b) => a.Order.CompareTo(b.Order));
+        
+        SettingsService.SaveSettings(_profileSettingsData);
+    }
+}

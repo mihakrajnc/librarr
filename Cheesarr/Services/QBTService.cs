@@ -1,4 +1,7 @@
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
+using BencodeNET.Parsing;
+using BencodeNET.Torrents;
 using Cheesarr.Settings;
 
 namespace Cheesarr.Services;
@@ -7,32 +10,59 @@ public class QBTService(HttpClient httpClient, SettingsService ss, ILogger<OpenL
 {
     private const string ADD_API = "/api/v2/torrents/add";
     
-    public async Task DownloadTorrent(string torrentUrl)
+    
+    
+    public async Task<string?> DownloadTorrent(string torrentUrl)
     {
+        logger.LogInformation($"Downloading torrent from {torrentUrl}");
+        
         var qbtSettings = ss.GetSettings<QBTSettingsData>();
-        var prowlarrSettings = ss.GetSettings<ProwlarrSettingsData>();
         
-        // Update the host to the one from settings
-        torrentUrl =  new UriBuilder(torrentUrl)
+        // Download the torrent file
+        using var torrentHttpClient = new HttpClient();
+        var torrentResponse = await torrentHttpClient.GetAsync(torrentUrl);
+        if (!torrentResponse.IsSuccessStatusCode)
         {
-            Host = "172.20.0.1", // TODO: prowlarrSettings.Host
-            Port = prowlarrSettings.Port
-        }.ToString();
-        
-        var formData = new Dictionary<string, string>
-        {
-            { "urls", torrentUrl },
-            { "paused", "true" }
-        };
-
-        if (!string.IsNullOrEmpty(qbtSettings.Category))
-        {
-            formData.Add("category", qbtSettings.Category);
+            logger.LogError($"Failed to download torrent: {torrentResponse.StatusCode}");
+            return null;
         }
 
-        var content = new FormUrlEncodedContent(formData);
-        content.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
+        var torrentData = await torrentResponse.Content.ReadAsByteArrayAsync();
+        var torrentHash = ComputeTorrentHash(torrentData);
 
-        await httpClient.PostAsync(ADD_API, content);
+        logger.LogInformation($"Downloaded torrent with hash: {torrentHash}");
+        
+        // Add torrent to QBT
+
+        var content = new MultipartFormDataContent
+        {
+            { new ByteArrayContent(torrentData), "torrents", "file.torrent" },
+            { new StringContent("true"), "paused" }
+        };
+        
+        if (!string.IsNullOrEmpty(qbtSettings.Category))
+        {
+            content.Add(new StringContent(qbtSettings.Category), "category");
+        }
+
+        var addResponse = await httpClient.PostAsync(ADD_API, content);
+        
+        if (!addResponse.IsSuccessStatusCode)
+        {
+            logger.LogError($"Failed to add torrent: {addResponse.StatusCode}");
+            return null;
+        }
+        
+        logger.LogInformation($"Added torrent with hash: {torrentHash}");
+
+        return torrentHash;
+    }
+
+    private static string ComputeTorrentHash(byte[] torrentBytes)
+    {
+        var parser = new BencodeParser();
+        var torrent = parser.Parse<Torrent>(torrentBytes);
+
+        return torrent.OriginalInfoHash;
     }
 }

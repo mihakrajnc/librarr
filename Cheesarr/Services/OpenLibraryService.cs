@@ -21,7 +21,7 @@ public class OpenLibraryService(HttpClient httpClient, CheesarrDbContext db, ILo
     }
 
     // TODO: Shouldn't really be here
-    public async Task<BookEntry> AddBook(OLDoc doc)
+    public async Task<BookEntry> AddBook(OLDoc doc, GrabType grabType)
     {
         var authorName = doc.author_name[0]; // TODO: For now we just use the first author
         var authorKey = doc.author_key[0];
@@ -44,7 +44,7 @@ public class OpenLibraryService(HttpClient httpClient, CheesarrDbContext db, ILo
             Title = doc.title,
             Author = author,
             FirstPublishYear = doc.first_publish_year,
-            ProfileId = 1 // TODO: Set this from UI
+            GrabType = grabType,
         };
 
         db.Books.Add(bookEntry);

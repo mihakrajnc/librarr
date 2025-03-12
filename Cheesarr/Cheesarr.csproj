@@ -8,6 +8,7 @@
 
 
     <ItemGroup>
+        <PackageReference Include="BencodeNET" Version="5.0.0" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.2" />
         <PackageReference Include="MudBlazor" Version="8.*"/>
         <PackageReference Include="System.Net.Http.Json" Version="9.0.2" />
