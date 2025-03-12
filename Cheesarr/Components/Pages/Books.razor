@@ -3,12 +3,14 @@
 @using Cheesarr.Model
 @using Cheesarr.Services
 @using Microsoft.EntityFrameworkCore
+@using SnackbarService = Cheesarr.Services.SnackMessageBus
 
 
 @inject ILogger<Search>   Logger;
 @inject CheesarrDbContext db
 @inject NavigationManager NavManager
-@inject GrabService GrabService
+@inject GrabService       GrabService
+@inject SnackbarService SnackMessageBus;
 
 <PageTitle>Books</PageTitle>
 
@@ -17,7 +19,7 @@
 <MudTable Items="@_books" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading" LoadingProgressColor="Color.Info">
     <HeaderContent>
         <MudTh>ID</MudTh>
-        <MudTh>Key</MudTh>
+        <MudTh>OLID</MudTh>
         <MudTh>Title</MudTh>
         <MudTh>Author</MudTh>
         <MudTh>Published</MudTh>
@@ -27,11 +29,11 @@
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="ID">@context.Id</MudTd>
-        <MudTd DataLabel="Key">@context.Key</MudTd>
+        <MudTd DataLabel="OLID">@context.OLID</MudTd>
         <MudTd DataLabel="Title">@context.Title</MudTd>
         <MudTd DataLabel="Author">@context.Author</MudTd>
         <MudTd DataLabel="Published">@context.FirstPublishYear</MudTd>
-        <MudTd DataLabel="EB Hash">@context.EBookTorrentHash</MudTd>
+        <MudTd DataLabel="EB Hash">@context.EBookTorrentHash.Substring(0, 7)</MudTd>
         <MudTd DataLabel="Cover">
             <MudImage Src="@($"https://covers.openlibrary.org/b/olid/{context.CoverEditionKey}-M.jpg")"
                       Width="100" Height="100"
@@ -76,6 +78,8 @@
 
     private async Task GrabBook(BookEntry book)
     {
-        await GrabService.SearchForBook(book);
+        SnackMessageBus.ShowInfo("Showing test snackbar.");
+
+        // await GrabService.SearchForBook(book);
     }
 }

@@ -1,16 +1,18 @@
 ﻿@using Cheesarr.Services
 @inherits LayoutComponentBase
 
-@inject ISnackbar Snackbar
-@inject GrabStateUpdater GrabStateUpdater
+@inject SnackMessageBus SnackMessageBus
+@inject ISnackbar       Snackbar;
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode"/>
 <MudPopoverProvider/>
 <MudDialogProvider/>
 <MudSnackbarProvider/>
+
 <MudLayout>
     <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())"/>
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       OnClick="@((e) => DrawerToggle())"/>
         <MudText Typo="Typo.h5" Class="ml-3">Cheesarr</MudText>
         <MudSpacer/>
         <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle"/>
@@ -23,7 +25,6 @@
         @Body
     </MudMainContent>
 </MudLayout>
-
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
@@ -38,20 +39,19 @@
 
     protected override void OnInitialized()
     {
-        base.OnInitialized();
-
         _theme = new MudTheme
         {
             PaletteLight = _lightPalette,
             PaletteDark = _darkPalette,
             LayoutProperties = new LayoutProperties()
         };
-        
-        GrabStateUpdater.NumberChanged += (_, e) =>
-        {
-            Snackbar.Add($"Number changed to {e}", Severity.Success);
-            InvokeAsync(StateHasChanged);
-        };
+
+        SnackMessageBus.MessageReceived += OnSnackMessageReceived;
+    }
+
+    private void OnSnackMessageReceived(string message, Severity severity)
+    {
+        InvokeAsync(() => Snackbar.Add(message, severity));
     }
 
     private void DrawerToggle()

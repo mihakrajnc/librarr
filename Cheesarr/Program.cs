@@ -39,6 +39,7 @@ builder.Services.AddSingleton<GrabStateUpdater>();
 
 builder.Services.AddSingleton<SettingsService>();
 builder.Services.AddSingleton<GrabService>();
+builder.Services.AddSingleton<SnackMessageBus>();
 
 builder.Services.AddHttpClient<ProwlarrService>((sp, client) =>
 {

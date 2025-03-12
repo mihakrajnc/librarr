@@ -4,7 +4,7 @@ using Cheesarr.Settings;
 
 namespace Cheesarr.Services;
 
-public class GrabService(ProwlarrService prowlarr, SettingsService settingsService, ILogger<GrabService> logger, QBTService qbtService, IServiceScopeFactory ssfactory)
+public class GrabService(ProwlarrService prowlarr, SettingsService settingsService, ILogger<GrabService> logger, QBTService qbtService, IServiceScopeFactory ssfactory, SnackMessageBus snackBus)
 {
     public async Task SearchForBook(BookEntry book)
     {
@@ -14,6 +14,7 @@ public class GrabService(ProwlarrService prowlarr, SettingsService settingsServi
         }
         
         logger.LogInformation($"Searching for {book.GrabType}");
+        snackBus.ShowInfo($"Searching for {book.Title}");
         
         var searchTerm = book.Title;// + " by " + book.Author.Name;
         var ebooks = book.GrabType is GrabType.EBook or GrabType.Both;
@@ -61,6 +62,7 @@ public class GrabService(ProwlarrService prowlarr, SettingsService settingsServi
         if (selectedEbookItem != null)
         {
             logger.LogInformation($"Selected ebook release: {selectedEbookItem.Title}");
+            snackBus.ShowInfo($"Selected release {selectedEbookItem.Title}");
             var hash = await DownloadItem(selectedEbookItem);
             
             if (hash == null)
@@ -69,12 +71,13 @@ public class GrabService(ProwlarrService prowlarr, SettingsService settingsServi
                 return;
             }
 
-
             using var scope = ssfactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<CheesarrDbContext>();
 
             book.EBookTorrentHash = hash;
             db.Books.Update(book);
+            
+            snackBus.ShowInfo($"Release grabbed for {book.Title}");
         }
     }
     

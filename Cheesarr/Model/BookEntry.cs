@@ -1,13 +1,15 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace Cheesarr.Model;
 
+[Index(nameof(OLID), IsUnique = true)]
 public class BookEntry
 {
     [Key] public int Id { get; set; }
 
-    [Required] public string   Key              { get; set; } = string.Empty;
+    [Required] public string   OLID              { get; set; } = string.Empty;
     [Required] public string   CoverEditionKey  { get; set; } = string.Empty;
     [Required] public string   Title            { get; set; } = string.Empty;
     public            int      FirstPublishYear { get; set; }

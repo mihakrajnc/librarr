@@ -2,12 +2,14 @@
 @using Cheesarr.Data
 @using Cheesarr.Model
 @using Cheesarr.Services
+@using Microsoft.EntityFrameworkCore
+@using SnackbarService = Cheesarr.Services.SnackMessageBus
 
-@inject HttpClient         HttpClient
-@inject NavigationManager  NavigationManager
-@inject ILogger<Search>    Logger;
-@inject OpenLibraryService OLS;
+@inject GrabService        GrabService
+@inject ILogger<Search>    Logger
+@inject OpenLibraryService OLS
 @inject CheesarrDbContext  db
+@inject SnackbarService SnackMessageBus;
 
 <PageTitle>Book Search</PageTitle>
 
@@ -25,6 +27,8 @@
     <MudRadio Value="@GrabType.Both" Color="Color.Primary" Dense="true">Both</MudRadio>
 </MudRadioGroup>
 
+<MudCheckBox @bind-Value="_searchOnAdd" Label="Search on Add"/>
+
 <MudTable Items="@_books" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading" LoadingProgressColor="Color.Info">
     <HeaderContent>
         <MudTh>ID</MudTh>
@@ -38,8 +42,9 @@
         <MudTd DataLabel="Title">@context.title</MudTd>
         <MudTd DataLabel="Author">@string.Join(", ", context.author_name)</MudTd>
         <MudTd DataLabel="Published">@context.first_publish_year</MudTd>
-        <MudTd DataLabel="">
-            <MudFab Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
+        <MudTd DataLabel="Grab">
+            <MudFab Color="Color.Secondary" Disabled="@(IsBookAlreadyAdded(context))"
+                    StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
                     OnClick="() => OnAddClicked(context)"/>
         </MudTd>
     </RowTemplate>
@@ -51,9 +56,21 @@
 @code {
     private GrabType _grabType = GrabType.EBook;
     private string _searchTerm = "";
+    private bool _searchOnAdd;
+    
     private bool _loading;
 
     private List<OLDoc> _books = new();
+    
+    private async Task<bool> IsBookInDatabaseAsync(OLDoc book)
+    {
+        return await db.Books.AnyAsync(b => b.OLID == book.key);
+    }
+
+    private bool IsBookAlreadyAdded(OLDoc book)
+    {
+        return db.Books.Any(b => b.OLID == book.key);
+    }
 
     private async Task OnSearchClicked()
     {
@@ -68,9 +85,20 @@
 
     private async Task OnAddClicked(OLDoc book)
     {
+        if (await IsBookInDatabaseAsync(book))
+        {
+            Logger.LogInformation($"{book.title} is already in the database.");
+            return;
+        }
+
         Logger.LogInformation($"Saving {book.title} to DB");
 
         var be = await OLS.AddBook(book, _grabType);
+
+        if (_searchOnAdd)
+        {
+            await GrabService.SearchForBook(be);
+        }
         
         await db.SaveChangesAsync();
     }
