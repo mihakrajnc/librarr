@@ -20,7 +20,9 @@ public class BookEntry
 
 
     public                                int         AuthorId { get; set; }
-    [ForeignKey(nameof(AuthorId))] public AuthorEntry Author   { get; set; }
+    [ForeignKey(nameof(AuthorId))] public virtual AuthorEntry Author   { get; set; }
+    
+    public virtual List<FileEntry> Files { get; set; } = [];
 }
 
 public enum GrabType
@@ -32,9 +34,9 @@ public enum GrabType
 
 public enum Status
 {
-    Wanted,
-    Grabbed,
-    Downloading,
-    Downloaded,
-    Imported,
+    Wanted = 0,
+    Grabbed = 1,
+    Downloading = 2,
+    Downloaded = 3,
+    Imported = 4,
 }

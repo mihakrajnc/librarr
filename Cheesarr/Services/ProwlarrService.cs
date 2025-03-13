@@ -1,9 +1,11 @@
+using BencodeNET.Parsing;
+using BencodeNET.Torrents;
 using Cheesarr.Model;
 using Cheesarr.Settings;
 
 namespace Cheesarr.Services;
 
-public class ProwlarrService(HttpClient httpClient, ILogger<OpenLibraryService> logger)
+public class ProwlarrService(HttpClient httpClient, SettingsService ss, ILogger<OpenLibraryService> logger)
 {
     private const string SEARCH_API_URL = "api/v1/search?query={0}";
 
@@ -18,5 +20,27 @@ public class ProwlarrService(HttpClient httpClient, ILogger<OpenLibraryService> 
         if (audiobooks) url += $"&categories={CAT_AUDIOBOOKS}";
 
         return httpClient.GetFromJsonAsync<List<ProwlarrItem>>(url)!;
+    }
+
+    
+    public async Task<(byte[] data, string hash)> DownloadTorrentFile(string downloadUrl)
+    {
+        logger.LogInformation($"Downloading torrent from {downloadUrl}");
+        
+        // Download the torrent file
+        using var torrentHttpClient = new HttpClient();
+        var torrentResponse = await torrentHttpClient.GetAsync(downloadUrl);
+        if (!torrentResponse.IsSuccessStatusCode)
+        {
+            logger.LogError($"Failed to download torrent: {torrentResponse.StatusCode}");
+            throw new Exception($"Failed to download torrent: {torrentResponse.StatusCode}");
+        }
+
+        var torrentData = await torrentResponse.Content.ReadAsByteArrayAsync();
+        var torrentHash = new BencodeParser().Parse<Torrent>(torrentData).OriginalInfoHash;
+        
+        logger.LogInformation($"Downloaded torrent with hash: {torrentHash}");
+        
+        return (torrentData, torrentHash);
     }
 }

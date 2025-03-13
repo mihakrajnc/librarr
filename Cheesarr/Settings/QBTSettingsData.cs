@@ -4,8 +4,8 @@ namespace Cheesarr.Settings;
 
 public class QBTSettingsData
 {
-    [Required(ErrorMessage = "API Key is required")]
-    public string APIKey { get; set; } = string.Empty;
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Host is required")]
     public string Host { get; set; } = "localhost";

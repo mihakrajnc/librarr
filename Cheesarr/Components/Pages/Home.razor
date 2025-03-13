@@ -1,7 +1,6 @@
 ﻿@page "/"
 @using Cheesarr.Services
 
-@inject GrabStateUpdater grabStateUpdater
 @inject ILogger<Home> Logger;
 
 <PageTitle>Home</PageTitle>
@@ -15,12 +14,7 @@
 
     protected override void OnInitialized()
     {
-        grabStateUpdater.NumberChanged += (sender, e) =>
-        {
-            Logger.LogInformation($"Number changed to {e}");
-            number = e.ToString();
-            InvokeAsync(StateHasChanged);
-        };
+
     }
 
 }

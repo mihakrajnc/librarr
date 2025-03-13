@@ -62,7 +62,8 @@
 
     private async Task SendToDownloadClient(ProwlarrItem pi)
     {
-        await qbtService.AddTorrent(pi.downloadUrl);
+        var (data, hash) = await ProwlarrService.DownloadTorrentFile(pi.downloadUrl);
+        await qbtService.AddTorrent(data, hash);
     }
 
     private void GoBack() => NavManager.NavigateTo("/books");

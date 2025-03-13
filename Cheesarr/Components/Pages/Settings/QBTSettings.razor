@@ -22,9 +22,13 @@
 
         <MudCheckBox Label="Use SSL" @bind-Value="_settings.UseSSL" Color="Color.Primary"/>
 
-        <MudTextField Label="API Key" Variant="Variant.Filled" InputType="InputType.Password"
-                      @bind-Value="@_settings.APIKey" For="() => _settings.APIKey"
-                      HelperText="The API key of your Prowlarr instance"/>
+        <MudTextField Label="Username" Variant="Variant.Filled"
+                      @bind-Value="@_settings.Username" For="() => _settings.Username"
+                      HelperText="Username of your QBT instance, if required"/>
+
+        <MudTextField Label="Password" Variant="Variant.Filled" InputType="InputType.Password"
+                      @bind-Value="@_settings.Password" For="() => _settings.Password"
+                      HelperText="Password of your QBT instance, if required"/>
 
         <MudTextField Label="Category" Variant="Variant.Filled"
                       @bind-Value="@_settings.Category"

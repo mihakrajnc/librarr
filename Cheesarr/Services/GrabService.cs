@@ -78,14 +78,18 @@ public class GrabService(ProwlarrService prowlarr, SettingsService settingsServi
             book.Status = Status.Grabbed;
             
             db.Books.Update(book);
+            await db.SaveChangesAsync();
             
             snackBus.ShowInfo($"Release grabbed for {book.Title}");
         }
     }
     
-    private Task<string?> DownloadItem(ParsedItem item)
+    private async Task<string?> DownloadItem(ParsedItem item)
     {
-        return qbtService.AddTorrent(item.DownloadURL);
+        var (data, hash) = await prowlarr.DownloadTorrentFile(item.DownloadURL);
+        await qbtService.AddTorrent(data, hash);
+
+        return hash;
     }
 
     private class ParsedItem

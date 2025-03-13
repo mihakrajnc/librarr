@@ -1,0 +1,41 @@
+@page "/settings/library"
+@using Cheesarr.Settings
+
+@inject SettingsService SettingsService
+@inject ILogger<LibrarySettings> Logger
+
+<PageTitle>Library Settings</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Library Settings</MudText>
+
+<EditForm Model="@_settings" OnValidSubmit="OnSaveClicked">
+    <DataAnnotationsValidator />
+
+    <MudStack Spacing="2">
+        <MudTextField Label="Library Path" Variant="Variant.Filled" @bind-Value="@_settings.LibraryPath" InputType="InputType.Text"
+                      For="() => _settings.LibraryPath"
+                      HelperText="The path to your library folder, e.g. /mnt/media/movies"
+                      T="string" />
+
+        <MudButton ButtonType="ButtonType.Submit" OnClick="OnSaveClicked" Variant="Variant.Filled" FullWidth="true" Color="Color.Primary"
+                   Class="ml-auto">
+            Save
+        </MudButton>
+    </MudStack>
+</EditForm>
+
+@code {
+    private LibrarySettingsData _settings = null!;
+
+    protected override void OnInitialized()
+    {
+        _settings = SettingsService.GetSettings<LibrarySettingsData>();
+    }
+
+    private void OnSaveClicked()
+    {
+        SettingsService.SaveSettings(_settings);
+
+        Logger.LogInformation("Library settings saved");
+    }
+}

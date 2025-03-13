@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 
+// TODO: Memory cache
 public class SettingsService
 {
     private const string SETTINGS_DIRECTORY = "db";
