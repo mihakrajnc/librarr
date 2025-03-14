@@ -12,6 +12,22 @@ public class CheesarrDbContext(DbContextOptions options) : DbContext(options)
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // EBookTorrent
+        modelBuilder.Entity<BookEntry>()
+            .HasOne(b => b.EBookTorrent)
+            .WithOne(t => t.EBookOf)
+            .HasForeignKey<TorrentEntry>(t => t.EBookOfId)
+            .OnDelete(DeleteBehavior.Cascade);
+        
+        // AudiobookTorrent
+        modelBuilder.Entity<BookEntry>()
+            .HasOne(b => b.AudiobookTorrent)
+            .WithOne(t => t.AudiobookOf)
+            .HasForeignKey<TorrentEntry>(t => t.AudiobookOfId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+        
+        
         // modelBuilder.Entity<BookEntry>()
         //     .HasOne(b => b.AudiobookFile)
         //     .WithOne(f => f.Book) // FileEntry must have a BookEntry
@@ -23,5 +39,5 @@ public class CheesarrDbContext(DbContextOptions options) : DbContext(options)
         //     .WithOne(b => b.AudiobookFile)
         //     .HasForeignKey<BookEntry>(b => b.AudiobookFileId) // Foreign key reference in BookEntry
         //     .IsRequired(false); // AudiobookFile in BookEntry is optional
-    }
+    
 }
