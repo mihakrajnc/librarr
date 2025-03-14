@@ -1,25 +1,35 @@
 using BencodeNET.Parsing;
 using BencodeNET.Torrents;
 using Cheesarr.Model;
-using Cheesarr.Settings;
 
-namespace Cheesarr.Services;
+namespace Cheesarr.Services.ReleaseSearch;
 
-public class ProwlarrService(HttpClient httpClient, SettingsService ss, ILogger<OpenLibraryService> logger)
+public class ProwlarrReleaseSearchService(HttpClient httpClient, ILogger<OpenLibraryService> logger)
+    : IReleaseSearchService
 {
     private const string SEARCH_API_URL = "api/v1/search?query={0}";
 
     private const int CAT_EBOOKS = 7020;
     private const int CAT_AUDIOBOOKS = 3030;
 
-    public Task<List<ProwlarrSearchResponseItem>> Search(string bookName, bool ebooks, bool audiobooks)
+    public async Task<ReleaseSearchItem[]> Search(string bookName, bool ebooks, bool audiobooks)
     {
         var url = string.Format(SEARCH_API_URL, Uri.EscapeDataString(bookName));
 
         if (ebooks) url += $"&categories={CAT_EBOOKS}";
         if (audiobooks) url += $"&categories={CAT_AUDIOBOOKS}";
 
-        return httpClient.GetFromJsonAsync<List<ProwlarrSearchResponseItem>>(url)!;
+        var response = await httpClient.GetAsync(url);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogError($"Failed to find torrents: {response.StatusCode}");
+            throw new Exception($"Failed to find torrents: {response.StatusCode}");
+        }
+
+        return (await response.Content.ReadFromJsonAsync<ProwlarrSearchItemResponse[]>())
+            ?.Select(r => r.ToReleaseSearchItem())
+            .ToArray() ?? [];
     }
 
     public async Task<(byte[] data, string hash)> DownloadTorrentFile(string downloadUrl)

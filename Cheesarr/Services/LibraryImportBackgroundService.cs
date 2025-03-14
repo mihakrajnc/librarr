@@ -9,7 +9,8 @@ namespace Cheesarr.Services;
 public class LibraryImportBackgroundService(
     IServiceScopeFactory scopeFactory,
     ILogger<LibraryImportBackgroundService> logger,
-    SettingsService settingsService) : BackgroundService
+    SettingsService settingsService,
+    SnackMessageBus snackBus) : BackgroundService
 {
     private const int POOL_DELAY = 5000;
 
@@ -65,6 +66,7 @@ public class LibraryImportBackgroundService(
 
     private void TryImportTorrent(BookEntry book, TorrentEntry torrent, bool isEbook, ProfileSettingsData.Profile profile, CheesarrDbContext db)
     {
+        snackBus.ShowInfo($"Importing release: {torrent.Hash} for book: {book.Title}");
         logger.LogInformation($"Importing torrent {torrent.Hash} for book: {book.Title}");
 
         var contentPath = torrent.ContentPath;
@@ -147,6 +149,7 @@ public class LibraryImportBackgroundService(
         db.Books.Update(book);
         db.Torrents.Update(torrent);
 
+        snackBus.ShowInfo($"Imported book: {book.Title} to {destinationFile}");
         logger.LogInformation($"Imported book: {book.Title} to {destinationFile}");
     }
 }

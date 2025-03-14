@@ -3,6 +3,8 @@ using Cheesarr.Components;
 using Cheesarr.Components.Pages.Settings;
 using Cheesarr.Data;
 using Cheesarr.Services;
+using Cheesarr.Services.Download;
+using Cheesarr.Services.ReleaseSearch;
 using Cheesarr.Settings;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor;
@@ -37,7 +39,7 @@ builder.Services.AddSqlite<CheesarrDbContext>("Data Source=db/mouse.db", null, o
         .LogTo(Console.WriteLine, LogLevel.Warning);
 });
 
-builder.Services.AddHostedService<QbtPoolBackgroundService>();
+builder.Services.AddHostedService<DownloadStatusBackgroundService>();
 builder.Services.AddHostedService<LibraryImportBackgroundService>();
 
 builder.Services.AddSingleton<SettingsService>();
@@ -46,7 +48,7 @@ builder.Services.AddSingleton<SnackMessageBus>();
 
 // API Services
 builder.Services.AddHttpClient<OpenLibraryService>(client => { client.BaseAddress = new Uri("https://openlibrary.org/"); });
-builder.Services.AddHttpClient<ProwlarrService>((sp, client) =>
+builder.Services.AddHttpClient<IReleaseSearchService, ProwlarrReleaseSearchService>((sp, client) =>
 {
     var settings = sp.GetRequiredService<SettingsService>().GetSettings<ProwlarrSettingsData>();
     
@@ -54,7 +56,7 @@ builder.Services.AddHttpClient<ProwlarrService>((sp, client) =>
     client.DefaultRequestHeaders.Add("X-Api-Key", settings.APIKey);
 });
 
-builder.Services.AddHttpClient<QBTService>((sp, client) =>
+builder.Services.AddHttpClient<IDownloadService, QBTDownloadService>((sp, client) =>
 {
     var settings = sp.GetRequiredService<SettingsService>().GetSettings<QBTSettingsData>();
     client.BaseAddress = new Uri($"{(settings.UseSSL ? "https": "http")}://{settings.Host}:{settings.Port}");

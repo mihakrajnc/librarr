@@ -1,15 +1,13 @@
 using Cheesarr.Data;
 using Cheesarr.Model;
-using Cheesarr.Settings;
-using Cheesarr.Utils;
+using Cheesarr.Services.Download;
 
 namespace Cheesarr.Services;
 
-public class QbtPoolBackgroundService(
-    QBTService qbtService,
+public class DownloadStatusBackgroundService(
+    IDownloadService dlService,
     IServiceScopeFactory scopeFactory,
-    SettingsService settingsService,
-    ILogger<QbtPoolBackgroundService> logger) : BackgroundService
+    ILogger<DownloadStatusBackgroundService> logger) : BackgroundService
 {
     private const int POOL_DELAY = 5000;
 
@@ -36,25 +34,24 @@ public class QbtPoolBackgroundService(
 
         if (!hashes.Any()) return;
 
-        var qbtTorrents = await qbtService.GetTorrents(hashes);
+        var torrents = await dlService.GetTorrents(hashes);
 
-        if (qbtTorrents.Length == 0)
+        if (torrents.Length == 0)
         {
             logger.LogInformation("No matching torrents found");
             return;
         }
 
-        logger.LogInformation($"Found {qbtTorrents.Length} matching torrents");
+        logger.LogInformation($"Found {torrents.Length} matching torrents");
 
-        foreach (var torrentInfo in qbtTorrents)
+        foreach (var item in torrents)
         {
-            var isDownloaded = IsDownloaded(torrentInfo);
-            var torrentEntry = db.Torrents.First(t => t.Hash == torrentInfo.hash);
+            var torrentEntry = db.Torrents.First(t => t.Hash == item.Hash);
 
-            torrentEntry.TorrentStatus = isDownloaded
+            torrentEntry.TorrentStatus = item.Status == TorrentItem.DownloadStatus.Downloaded
                 ? TorrentEntry.Status.Downloaded
                 : TorrentEntry.Status.Downloading;
-            torrentEntry.ContentPath = torrentInfo.content_path;
+            torrentEntry.ContentPath = item.Path;
 
             db.Torrents.Update(torrentEntry);
 
@@ -62,12 +59,5 @@ public class QbtPoolBackgroundService(
         }
 
         await db.SaveChangesAsync();
-    }
-
-    private bool IsDownloaded(QBTTorrentInfoResponse torrentInfo)
-    {
-        return torrentInfo.state is QBTTorrentInfoResponse.State.PausedUp or QBTTorrentInfoResponse.State.Uploading
-            or QBTTorrentInfoResponse.State.StalledUp
-            or QBTTorrentInfoResponse.State.QueuedUp or QBTTorrentInfoResponse.State.ForcedUp;
     }
 }

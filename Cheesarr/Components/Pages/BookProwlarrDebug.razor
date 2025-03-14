@@ -1,13 +1,12 @@
 @page "/book/{id:int}"
-@using System.Net
 @using Cheesarr.Data
-@using Cheesarr.Model
-@using Cheesarr.Services
+@using Cheesarr.Services.Download
+@using Cheesarr.Services.ReleaseSearch
 
 @inject NavigationManager NavManager
-@inject ProwlarrService   ProwlarrService
+@inject ProwlarrReleaseSearchService   ReleaseSearchService
 @inject CheesarrDbContext db
-@inject QBTService qbtService
+@inject IDownloadService dlService
 
 
 <MudTable Items="@_results" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading"
@@ -21,11 +20,11 @@
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Title">
-            <MudLink Target="_blank" Href="@context.infoUrl">@context.title</MudLink>
+            <MudLink Target="_blank" Href="@context.InfoURL">@context.Title</MudLink>
         </MudTd>
-        <MudTd DataLabel="Grabs">@context.grabs</MudTd>
-        <MudTd DataLabel="Seeders">@context.seeders</MudTd>
-        <MudTd DataLabel="Indexer">@context.indexer</MudTd>
+        <MudTd DataLabel="Grabs">@context.Downloads</MudTd>
+        <MudTd DataLabel="Seeders">@context.Seeders</MudTd>
+        <MudTd DataLabel="Indexer">/</MudTd>
         <MudTd DataLabel="Grab">
             <MudButton OnClick="() =>SendToDownloadClient(context)" Color="Color.Primary">
                 Grab
@@ -42,7 +41,7 @@
 @code {
     [Parameter] public int Id { get; set; }
 
-    private List<ProwlarrSearchResponseItem> _results = [];
+    private List<ReleaseSearchItem> _results = [];
 
     private bool _loading = true;
 
@@ -55,15 +54,15 @@
     {
         var book = await db.Books.FindAsync(id);
 
-        _results = (await ProwlarrService.Search(book.Title, true, true)).OrderByDescending(pi => pi.grabs).ToList();
+        _results = (await ReleaseSearchService.Search(book.Title, true, true)).OrderByDescending(pi => pi.Downloads).ToList();
 
         _loading = false;
     }
 
-    private async Task SendToDownloadClient(ProwlarrSearchResponseItem pi)
+    private async Task SendToDownloadClient(ReleaseSearchItem rsi)
     {
-        var (data, hash) = await ProwlarrService.DownloadTorrentFile(pi.downloadUrl);
-        await qbtService.AddTorrent(data, hash);
+        var (data, hash) = await ReleaseSearchService.DownloadTorrentFile(rsi.DownloadURL);
+        await dlService.AddTorrent(data, hash);
     }
 
     private void GoBack() => NavManager.NavigateTo("/books");

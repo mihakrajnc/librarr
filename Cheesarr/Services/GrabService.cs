@@ -1,14 +1,16 @@
 using Cheesarr.Data;
 using Cheesarr.Model;
+using Cheesarr.Services.Download;
+using Cheesarr.Services.ReleaseSearch;
 using Cheesarr.Settings;
 
 namespace Cheesarr.Services;
 
 public class GrabService(
-    ProwlarrService prowlarr,
+    IReleaseSearchService releaseSearchService,
     SettingsService settingsService,
     ILogger<GrabService> logger,
-    QBTService qbtService,
+    IDownloadService dlService,
     IServiceScopeFactory scopeFactory,
     SnackMessageBus snackBus)
 {
@@ -22,7 +24,7 @@ public class GrabService(
         var audiobooksWanted = book.WantedTypes.HasFlag(BookEntryType.Audiobook);
         var profileSettings = settingsService.GetSettings<ProfileSettingsData>();
 
-        var prowlarrResponse = await prowlarr.Search(searchTerm, ebookWanted, audiobooksWanted);
+        var prowlarrResponse = await releaseSearchService.Search(searchTerm, ebookWanted, audiobooksWanted);
         var parsedItems = prowlarrResponse.Select(ParsedItem.Create).ToList();
 
         logger.LogInformation($"Found {parsedItems.Count} items");
@@ -102,8 +104,8 @@ public class GrabService(
 
     private async Task<string?> GrabItem(ParsedItem item)
     {
-        var (data, hash) = await prowlarr.DownloadTorrentFile(item.DownloadURL);
-        await qbtService.AddTorrent(data, hash);
+        var (data, hash) = await releaseSearchService.DownloadTorrentFile(item.DownloadURL);
+        await dlService.AddTorrent(data, hash);
 
         return hash;
     }
@@ -118,24 +120,24 @@ public class GrabService(
         public bool VIP;
         public required HashSet<string> Formats;
 
-        public static ParsedItem Create(ProwlarrSearchResponseItem pi)
+        public static ParsedItem Create(ReleaseSearchItem rsi)
         {
-            var firstBracket = pi.title.IndexOf('[');
-            var secondBracket = pi.title.IndexOf(']', firstBracket + 1);
+            var firstBracket = rsi.Title.IndexOf('[');
+            var secondBracket = rsi.Title.IndexOf(']', firstBracket + 1);
 
-            var tags = pi.title.Substring(firstBracket + 1,
+            var tags = rsi.Title.Substring(firstBracket + 1,
                     secondBracket - firstBracket - 1)
                 .Split(" / ");
 
             return new ParsedItem
             {
-                Title = pi.title,
+                Title = rsi.Title,
                 Language = tags[0],
                 Formats = [..tags.Skip(1)],
-                Seeders = pi.seeders,
-                Leechers = pi.leechers,
-                DownloadURL = pi.downloadUrl,
-                VIP = pi.title.EndsWith("[VIP]")
+                Seeders = rsi.Seeders,
+                Leechers = rsi.Leechers,
+                DownloadURL = rsi.DownloadURL,
+                VIP = rsi.Title.EndsWith("[VIP]")
             };
         }
     }

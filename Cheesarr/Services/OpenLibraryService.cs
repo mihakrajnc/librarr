@@ -6,9 +6,8 @@ namespace Cheesarr.Services;
 public class OpenLibraryService(HttpClient httpClient, CheesarrDbContext db, ILogger<OpenLibraryService> logger)
 {
     private const string SEARCH_API_URL = "search.json?q={0}";
-    private const string AUTHOR_WORKS_API = "authors/{0}/works.json";
 
-    public async Task<IReadOnlyList<OpenLibraryResponse.Document>> SearchBooksAsync(string query)
+    public async Task<OpenLibraryResponse.Document[]> SearchBooksAsync(string query)
     {
         var uri = string.Format(SEARCH_API_URL, Uri.EscapeDataString(query + " language:eng"));
 

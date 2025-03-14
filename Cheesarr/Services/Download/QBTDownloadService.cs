@@ -1,9 +1,10 @@
 using Cheesarr.Model;
 using Cheesarr.Settings;
 
-namespace Cheesarr.Services;
+namespace Cheesarr.Services.Download;
 
-public class QBTService(HttpClient httpClient, SettingsService ss, ILogger<OpenLibraryService> logger)
+public class QBTDownloadService(HttpClient httpClient, SettingsService ss, ILogger<OpenLibraryService> logger)
+    : IDownloadService
 {
     private const string ADD_API = "/api/v2/torrents/add";
     private const string INFO_API = "/api/v2/torrents/info";
@@ -16,7 +17,7 @@ public class QBTService(HttpClient httpClient, SettingsService ss, ILogger<OpenL
         var content = new MultipartFormDataContent
         {
             { new ByteArrayContent(torrentData), "torrents", "file.torrent" },
-            { new StringContent("true"), "paused" }
+            { new StringContent("true"), "paused" } // TODO: Doesn't work
         };
 
         if (!string.IsNullOrEmpty(qbtSettings.Category))
@@ -35,12 +36,17 @@ public class QBTService(HttpClient httpClient, SettingsService ss, ILogger<OpenL
         logger.LogInformation($"Added torrent with hash: {torrentHash}");
     }
 
-    public async Task<QBTTorrentInfoResponse[]> GetTorrents(IEnumerable<string> hashes)
+    public async Task<TorrentItem[]> GetTorrents(IEnumerable<string> hashes)
     {
-        var results =
-            await httpClient.GetFromJsonAsync<QBTTorrentInfoResponse[]>(
-                $"{INFO_API}?hashes={string.Join('|', hashes)}") ?? [];
+        var response = await httpClient.GetAsync($"{INFO_API}?hashes={string.Join('|', hashes)}");
 
-        return results;
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogError($"Failed to fetch torrents: {response.StatusCode}");
+            throw new Exception($"Failed to fetch torrents: {response.StatusCode}");
+        }
+
+        return (await response.Content.ReadFromJsonAsync<QBTTorrentItemResponse[]>())?.Select(r => r.ToTorrentItem())
+            .ToArray() ?? [];
     }
 }

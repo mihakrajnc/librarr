@@ -2,7 +2,7 @@ namespace Cheesarr.Model;
 
 // ReSharper disable InconsistentNaming
 public record OpenLibraryResponse(
-    IReadOnlyList<OpenLibraryResponse.Document> docs
+    OpenLibraryResponse.Document[] docs
     // int numFound,
     // int start,
     // bool numFoundExact,
