@@ -31,7 +31,7 @@ public class OpenLibraryService(HttpClient httpClient, CheesarrDbContext db, ILo
             OLID = authorKey,
             Name = authorName
         }).Entity;
-
+        
         var bookEntry = new BookEntry
         {
             OLID = doc.key,

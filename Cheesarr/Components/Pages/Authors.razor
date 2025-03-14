@@ -6,7 +6,7 @@
 @inject ILogger<Search>   Logger;
 @inject CheesarrDbContext db
 
-<h3>Authors</h3>
+<MudText Typo="Typo.h3" GutterBottom="true">Authors</MudText>
 
 <MudTable Items="@_authors" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading"
           LoadingProgressColor="Color.Info">

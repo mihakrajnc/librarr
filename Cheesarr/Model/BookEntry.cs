@@ -23,13 +23,6 @@ public class BookEntry
     public          FileEntry?    AudiobookFile    { get; set; }
 }
 
-// public enum GrabType
-// {
-//     EBook,
-//     Audiobook,
-//     Both,
-// }
-
 [Flags]
 public enum BookEntryType : byte
 {
