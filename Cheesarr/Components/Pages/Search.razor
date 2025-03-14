@@ -1,13 +1,13 @@
 ﻿@page "/search"
+@using Cheesarr.Components.Dialogs
 @using Cheesarr.Data
 @using Cheesarr.Model
-@using Cheesarr.Services
+@using Cheesarr.Services.Metadata
 @using Microsoft.EntityFrameworkCore
 
-@inject GrabService        GrabService
-@inject ILogger<Search>    Logger
-@inject OpenLibraryService OLS
+@inject IMetadataService MetadataService
 @inject CheesarrDbContext  db
+@inject IDialogService     DialogService
 
 <PageTitle>Book Search</PageTitle>
 
@@ -36,10 +36,10 @@
         <MudTh>Grab</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="ID">@context.key</MudTd>
-        <MudTd DataLabel="Title">@context.title</MudTd>
-        <MudTd DataLabel="Author">@string.Join(", ", context.author_name)</MudTd>
-        <MudTd DataLabel="Published">@context.first_publish_year</MudTd>
+        <MudTd DataLabel="ID">@context.ID</MudTd>
+        <MudTd DataLabel="Title">@context.Title</MudTd>
+        <MudTd DataLabel="Author">@context.AuthorName</MudTd>
+        <MudTd DataLabel="Published">@context.PublishYear</MudTd>
         <MudTd DataLabel="Grab">
             <MudFab Color="Color.Secondary" Disabled="@(IsBookAlreadyAdded(context))"
                     StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
@@ -55,25 +55,25 @@
     private BookEntryType _entryType = BookEntryType.EBook;
     private string _searchTerm = "";
     private bool _searchOnAdd = true;
-    
+
     private bool _loading;
 
-    private List<OpenLibraryResponse.Document> _books = new();
+    private List<BookSearchItem> _books = new();
     private HashSet<string> _addedBooks = new();
 
     protected override async Task OnInitializedAsync()
     {
-        _addedBooks = await db.Books.Select(be => be.OLID).ToHashSetAsync();
+        _addedBooks = await db.Books.Select(be => be.ID).ToHashSetAsync();
     }
 
-    private async Task<bool> IsBookInDatabaseAsync(OpenLibraryResponse.Document book)
+    private async Task<bool> IsBookInDatabaseAsync(BookSearchItem book)
     {
-        return await db.Books.AnyAsync(b => b.OLID == book.key);
+        return await db.Books.AnyAsync(b => b.ID == book.ID);
     }
 
-    private bool IsBookAlreadyAdded(OpenLibraryResponse.Document book)
+    private bool IsBookAlreadyAdded(BookSearchItem book)
     {
-        return _addedBooks.Contains(book.key);
+        return _addedBooks.Contains(book.ID);
     }
 
     private async Task OnSearchClicked()
@@ -82,30 +82,17 @@
 
         _books.Clear();
 
-        _books = (await OLS.SearchBooksAsync(_searchTerm)).ToList();
+        _books = (await MetadataService.Search(_searchTerm)).ToList();
 
         _loading = false;
     }
 
-    private async Task OnAddClicked(OpenLibraryResponse.Document book)
+    private async Task OnAddClicked(BookSearchItem book)
     {
-        if (await IsBookInDatabaseAsync(book))
+        await DialogService.ShowAsync<AddBookDialog>("Add book", new DialogParameters<AddBookDialog>
         {
-            Logger.LogInformation($"{book.title} is already in the database.");
-            return;
-        }
-
-        Logger.LogInformation($"Saving {book.title} to DB");
-
-        var be = await OLS.AddBook(book, _entryType);
-        _addedBooks.Add(book.key);
-
-        if (_searchOnAdd)
-        {
-            await GrabService.SearchForBook(be);
-        }
-        
-        await db.SaveChangesAsync();
+            { x => x.Book, book }
+        });
     }
 
 }

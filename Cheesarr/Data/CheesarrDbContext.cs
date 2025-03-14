@@ -1,4 +1,5 @@
 using Cheesarr.Model;
+using Cheesarr.Services.Metadata;
 using Microsoft.EntityFrameworkCore;
 
 namespace Cheesarr.Data;
@@ -14,7 +15,7 @@ public class CheesarrDbContext(DbContextOptions options) : DbContext(options)
     {
         // Shadow property for EBookOfId
         modelBuilder.Entity<TorrentEntry>()
-            .Property<int?>("EBookOfId");
+            .Property<string?>("EBookOfId");
 
         // Relationship for EBookTorrent
         modelBuilder.Entity<BookEntry>()
@@ -25,7 +26,7 @@ public class CheesarrDbContext(DbContextOptions options) : DbContext(options)
 
         // Shadow property for AudiobookOfId
         modelBuilder.Entity<TorrentEntry>()
-            .Property<int?>("AudiobookOfId");
+            .Property<string?>("AudiobookOfId");
 
         // Relationship for AudiobookTorrent
         modelBuilder.Entity<BookEntry>()
@@ -41,6 +42,35 @@ public class CheesarrDbContext(DbContextOptions options) : DbContext(options)
         // For every enum property in your model, store it as a string
         configurationBuilder.Properties<Enum>()
             .HaveConversion<string>();
+    }
+    
+    // TODO: Should this be here?
+    public async Task<BookEntry> AddBook(BookSearchItem bookItem, BookEntryType bookEntryType)
+    {
+        var authorName = bookItem.AuthorName; // TODO: For now we just use the first author
+        var authorKey = bookItem.AuthorID;
+
+        var author = Authors.FirstOrDefault(a => a.OLID == authorKey) ?? Authors.Add(new AuthorEntry
+        {
+            OLID = authorKey,
+            Name = authorName
+        }).Entity;
+        
+        var bookEntry = new BookEntry
+        {
+            ID = bookItem.ID,
+            CoverEditionKey = bookItem.ID,
+            Title = bookItem.Title,
+            Author = author,
+            FirstPublishYear = bookItem.PublishYear,
+            WantedTypes = bookEntryType,
+        };
+
+        Books.Add(bookEntry);
+
+        await SaveChangesAsync();
+
+        return bookEntry;
     }
     
 }

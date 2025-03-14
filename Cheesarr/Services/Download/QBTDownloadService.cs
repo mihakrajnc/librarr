@@ -1,9 +1,8 @@
-using Cheesarr.Model;
 using Cheesarr.Settings;
 
 namespace Cheesarr.Services.Download;
 
-public class QBTDownloadService(HttpClient httpClient, SettingsService ss, ILogger<OpenLibraryService> logger)
+public class QBTDownloadService(HttpClient httpClient, SettingsService ss, ILogger<QBTDownloadService> logger)
     : IDownloadService
 {
     private const string ADD_API = "/api/v2/torrents/add";

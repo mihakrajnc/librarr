@@ -4,6 +4,7 @@ using Cheesarr.Components.Pages.Settings;
 using Cheesarr.Data;
 using Cheesarr.Services;
 using Cheesarr.Services.Download;
+using Cheesarr.Services.Metadata;
 using Cheesarr.Services.ReleaseSearch;
 using Cheesarr.Settings;
 using Microsoft.EntityFrameworkCore;
@@ -47,19 +48,21 @@ builder.Services.AddSingleton<GrabService>();
 builder.Services.AddSingleton<SnackMessageBus>();
 
 // API Services
-builder.Services.AddHttpClient<OpenLibraryService>(client => { client.BaseAddress = new Uri("https://openlibrary.org/"); });
+builder.Services.AddHttpClient<IMetadataService, OpenLibraryMetadataService>(client =>
+{
+    client.BaseAddress = new Uri("https://openlibrary.org/");
+});
 builder.Services.AddHttpClient<IReleaseSearchService, ProwlarrReleaseSearchService>((sp, client) =>
 {
     var settings = sp.GetRequiredService<SettingsService>().GetSettings<ProwlarrSettingsData>();
-    
-    client.BaseAddress = new Uri($"{(settings.UseSSL ? "https": "http")}://{settings.Host}:{settings.Port}");
+
+    client.BaseAddress = new Uri($"{(settings.UseSSL ? "https" : "http")}://{settings.Host}:{settings.Port}");
     client.DefaultRequestHeaders.Add("X-Api-Key", settings.APIKey);
 });
-
 builder.Services.AddHttpClient<IDownloadService, QBTDownloadService>((sp, client) =>
 {
     var settings = sp.GetRequiredService<SettingsService>().GetSettings<QBTSettingsData>();
-    client.BaseAddress = new Uri($"{(settings.UseSSL ? "https": "http")}://{settings.Host}:{settings.Port}");
+    client.BaseAddress = new Uri($"{(settings.UseSSL ? "https" : "http")}://{settings.Host}:{settings.Port}");
     // TODO: Auth?
 });
 
@@ -87,10 +90,11 @@ var scopeFactory = app.Services.GetRequiredService<IServiceScopeFactory>();
 using (var scope = scopeFactory.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CheesarrDbContext>();
-    if(Environment.GetEnvironmentVariable("CLEAR_DB") == "true")
+    if (Environment.GetEnvironmentVariable("CLEAR_DB") == "true")
     {
         db.Database.EnsureDeleted();
     }
+
     if (db.Database.EnsureCreated())
     {
         SeedData.Initialize(db);

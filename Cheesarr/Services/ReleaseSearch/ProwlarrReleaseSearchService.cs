@@ -4,7 +4,7 @@ using Cheesarr.Model;
 
 namespace Cheesarr.Services.ReleaseSearch;
 
-public class ProwlarrReleaseSearchService(HttpClient httpClient, ILogger<OpenLibraryService> logger)
+public class ProwlarrReleaseSearchService(HttpClient httpClient, ILogger<ProwlarrReleaseSearchService> logger)
     : IReleaseSearchService
 {
     private const string SEARCH_API_URL = "api/v1/search?query={0}";

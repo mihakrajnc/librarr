@@ -25,7 +25,7 @@
         <MudTh>Remove</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="OLID">@context.OLID.Replace("/works/", "")</MudTd>
+        <MudTd DataLabel="OLID">@context.ID</MudTd>
         <MudTd DataLabel="Title">@context.Title</MudTd>
         <MudTd DataLabel="Author">@context.Author?.Name</MudTd>
         <MudTd DataLabel="Published">@context.FirstPublishYear</MudTd>
