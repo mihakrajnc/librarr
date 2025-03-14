@@ -4,87 +4,103 @@ using Cheesarr.Settings;
 
 namespace Cheesarr.Services;
 
-public class GrabService(ProwlarrService prowlarr, SettingsService settingsService, ILogger<GrabService> logger, QBTService qbtService, IServiceScopeFactory ssfactory, SnackMessageBus snackBus)
+public class GrabService(
+    ProwlarrService prowlarr,
+    SettingsService settingsService,
+    ILogger<GrabService> logger,
+    QBTService qbtService,
+    IServiceScopeFactory scopeFactory,
+    SnackMessageBus snackBus)
 {
     public async Task SearchForBook(BookEntry book)
     {
-        if (book.GrabType is GrabType.Audiobook or GrabType.Both)
-        {
-            throw new NotSupportedException("Audiobooks are not supported yet");
-        }
-        
-        logger.LogInformation($"Searching for {book.GrabType}");
+        logger.LogInformation($"Searching for {book.Title}");
         snackBus.ShowInfo($"Searching for {book.Title}");
-        
-        var searchTerm = book.Title;// + " by " + book.Author.Name;
-        var ebooks = book.GrabType is GrabType.EBook or GrabType.Both;
-        var audiobooks = book.GrabType is GrabType.Audiobook or GrabType.Both;
 
+        var searchTerm = book.Title; // + " by " + book.Author.Name;
+        var ebookWanted = book.WantedTypes.HasFlag(BookEntryType.EBook);
+        var audiobooksWanted = book.WantedTypes.HasFlag(BookEntryType.Audiobook);
         var profileSettings = settingsService.GetSettings<ProfileSettingsData>();
-        var audiobookFormats = profileSettings.AudiobookProfile.Formats
-            .Where(f => f.Enabled)
-            .Select(f => f.Name)
-            .ToHashSet();
-        var ebookFormats = profileSettings.EBookProfile.Formats
-            .Where(f => f.Enabled)
-            .Select(f => f.Name)
-            .ToHashSet();
-        
-        
-        var prowlarrResponse = await prowlarr.Search(searchTerm, ebooks, audiobooks);
+
+        var prowlarrResponse = await prowlarr.Search(searchTerm, ebookWanted, audiobooksWanted);
         var parsedItems = prowlarrResponse.Select(ParsedItem.Create).ToList();
-        
+
         logger.LogInformation($"Found {parsedItems.Count} items");
-        
-        var ebookItems = parsedItems.Where(pi => ebookFormats.Intersect(pi.Formats).Any()).OrderBy(pi => pi.Seeders).ToList();
-        var audiobookItems = parsedItems.Where(pi => audiobookFormats.Intersect(pi.Formats).Any()).OrderBy(pi => pi.Seeders).ToList();
 
-        logger.LogInformation($"Kept {ebookItems.Count} ebook items");
-        logger.LogInformation($"Kept {audiobookItems.Count} audiobook items");
-
-        ParsedItem selectedEbookItem = null;
-        
-        foreach (var format in profileSettings.EBookProfile.Formats)
+        if (ebookWanted)
         {
-            if (!format.Enabled) continue; // TODO do better
-            
-            var foundItem = ebookItems.FirstOrDefault(pi => pi.Formats.Contains(format.Name));
-
-            if (foundItem != null)
+            var ebookHash = await PickAndGrabRelease(book, parsedItems, profileSettings.EBookProfile);
+            if (ebookHash != null)
             {
-                selectedEbookItem = foundItem;
-                break;
+                book.EBookTorrent = new TorrentEntry
+                {
+                    Hash = ebookHash
+                };
+                book.EBookStatus = Status.Grabbed;
             }
         }
-        
-        // TODO Audio books
 
-        if (selectedEbookItem != null)
+        if (audiobooksWanted)
         {
-            logger.LogInformation($"Selected ebook release: {selectedEbookItem.Title}");
-            snackBus.ShowInfo($"Selected release {selectedEbookItem.Title}");
-            var hash = await DownloadItem(selectedEbookItem);
-            
+            var audiobookHash = await PickAndGrabRelease(book, parsedItems, profileSettings.AudiobookProfile);
+            if (audiobookHash != null)
+            {
+                book.AudiobookTorrent = new TorrentEntry
+                {
+                    Hash = audiobookHash
+                };
+                book.AudiobookStatus = Status.Grabbed;
+            }
+        }
+
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CheesarrDbContext>();
+
+        db.Books.Update(book);
+
+        await db.SaveChangesAsync();
+    }
+
+    private async Task<string?> PickAndGrabRelease(BookEntry book, List<ParsedItem> parsedItems,
+        ProfileSettingsData.Profile profile)
+    {
+        var formatsSet = profile.Formats.Where(f => f.Enabled).Select(f => f.Name).ToHashSet();
+        var matchingItems = parsedItems.Where(pi => formatsSet.Intersect(pi.Formats).Any()).OrderBy(pi => pi.Seeders)
+            .ToList();
+
+        logger.LogInformation($"Kept {matchingItems.Count} ebook items");
+
+        ParsedItem? selectedItem = null;
+        foreach (var format in profile.Formats.Where(f => f.Enabled))
+        {
+            selectedItem = matchingItems.FirstOrDefault(pi => pi.Formats.Contains(format.Name));
+            if (selectedItem != null) break;
+        }
+
+        if (selectedItem != null)
+        {
+            logger.LogInformation($"Selected release: {selectedItem.Title}");
+            snackBus.ShowInfo($"Selected release {selectedItem.Title}");
+
+            var hash = await GrabItem(selectedItem);
+
             if (hash == null)
             {
                 logger.LogError("Failed to download torrent");
-                return;
+                return null;
             }
 
-            using var scope = ssfactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<CheesarrDbContext>();
+            snackBus.ShowInfo($"Release grabbed: {selectedItem.Title}");
 
-            book.EBookTorrentHash = hash.ToLowerInvariant();
-            book.Status = Status.Grabbed;
-            
-            db.Books.Update(book);
-            await db.SaveChangesAsync();
-            
-            snackBus.ShowInfo($"Release grabbed for {book.Title}");
+            return hash;
         }
+
+        snackBus.ShowInfo($"No matches found for: {book.Title}");
+
+        return null;
     }
-    
-    private async Task<string?> DownloadItem(ParsedItem item)
+
+    private async Task<string?> GrabItem(ParsedItem item)
     {
         var (data, hash) = await prowlarr.DownloadTorrentFile(item.DownloadURL);
         await qbtService.AddTorrent(data, hash);
@@ -94,34 +110,33 @@ public class GrabService(ProwlarrService prowlarr, SettingsService settingsServi
 
     private class ParsedItem
     {
-        public string Title;
-        public string Language;
+        public required string Title;
+        public required string Language;
         public int Seeders;
         public int Leechers;
-        public string DownloadURL;
-        public bool Vip;
-        public HashSet<string> Formats;
+        public required string DownloadURL;
+        public bool VIP;
+        public required HashSet<string> Formats;
 
         public static ParsedItem Create(ProwlarrItem pi)
         {
             var firstBracket = pi.title.IndexOf('[');
             var secondBracket = pi.title.IndexOf(']', firstBracket + 1);
-            
+
             var tags = pi.title.Substring(firstBracket + 1,
-                secondBracket - firstBracket - 1)
+                    secondBracket - firstBracket - 1)
                 .Split(" / ");
-            
+
             return new ParsedItem
             {
                 Title = pi.title,
                 Language = tags[0],
-                Formats = new HashSet<string>(tags.Skip(1)),
+                Formats = [..tags.Skip(1)],
                 Seeders = pi.seeders,
                 Leechers = pi.leechers,
                 DownloadURL = pi.downloadUrl,
-                Vip = pi.title.EndsWith("[VIP]")
+                VIP = pi.title.EndsWith("[VIP]")
             };
         }
     }
-
 }

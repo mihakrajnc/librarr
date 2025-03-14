@@ -39,7 +39,7 @@
         _loading = true;
         try
         {
-            _authors = await db.Authors.ToListAsync();
+            _authors = await db.Authors.Include(a => a.Books).ToListAsync();
         }
         catch (Exception ex)
         {

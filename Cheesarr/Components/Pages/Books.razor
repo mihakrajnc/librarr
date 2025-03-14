@@ -82,9 +82,10 @@
 
     private string GetShortHash(BookEntry book)
     {
-        if (string.IsNullOrEmpty(book.EBookTorrentHash)) return string.Empty;
+        var hash = book.EBookTorrent?.Hash;
+        if (hash == null) return string.Empty;
         
-        return book.EBookTorrentHash.Substring(0, 7) + "...";
+        return hash.Substring(0, 7) + "...";
     }
 
     private async Task RemoveBook(BookEntry book)

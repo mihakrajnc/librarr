@@ -37,7 +37,7 @@ public class ProwlarrService(HttpClient httpClient, SettingsService ss, ILogger<
         }
 
         var torrentData = await torrentResponse.Content.ReadAsByteArrayAsync();
-        var torrentHash = new BencodeParser().Parse<Torrent>(torrentData).OriginalInfoHash;
+        var torrentHash = new BencodeParser().Parse<Torrent>(torrentData).OriginalInfoHash.ToLowerInvariant();
         
         logger.LogInformation($"Downloaded torrent with hash: {torrentHash}");
         

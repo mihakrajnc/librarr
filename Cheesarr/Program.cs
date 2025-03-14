@@ -33,11 +33,12 @@ builder.Services.AddRazorComponents()
 builder.Services.AddSqlite<CheesarrDbContext>("Data Source=db/mouse.db", null, options =>
 {
     options
-        .UseLazyLoadingProxies()
+        // .UseLazyLoadingProxies()
         .LogTo(Console.WriteLine, LogLevel.Warning);
 });
 
 builder.Services.AddHostedService<QbtPoolBackgroundService>();
+builder.Services.AddHostedService<LibraryImportBackgroundService>();
 
 builder.Services.AddSingleton<SettingsService>();
 builder.Services.AddSingleton<GrabService>();

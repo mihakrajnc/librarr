@@ -10,9 +10,9 @@ public class OpenLibraryService(HttpClient httpClient, CheesarrDbContext db, ILo
     public async Task<IReadOnlyList<OLDoc>> SearchBooksAsync(string query)
     {
         var uri = string.Format(SEARCH_API_URL, Uri.EscapeDataString(query));
-        
+
         logger.LogInformation($"Searching for books from {uri} via {httpClient.BaseAddress}");
-        
+
         var response = await httpClient.GetFromJsonAsync<OpenLibraryResponse>(uri);
 
         var docs = response.docs;
@@ -21,22 +21,17 @@ public class OpenLibraryService(HttpClient httpClient, CheesarrDbContext db, ILo
     }
 
     // TODO: Shouldn't really be here
-    public async Task<BookEntry> AddBook(OLDoc doc, GrabType grabType)
+    public async Task<BookEntry> AddBook(OLDoc doc, BookEntryType bookEntryType)
     {
         var authorName = doc.author_name[0]; // TODO: For now we just use the first author
         var authorKey = doc.author_key[0];
 
-        var author = db.Authors.FirstOrDefault(a => a.OLID == authorKey);
-
-        if (author == null)
+        var author = db.Authors.FirstOrDefault(a => a.OLID == authorKey) ?? db.Authors.Add(new AuthorEntry
         {
-            author = db.Authors.Add(new AuthorEntry
-            {
-                OLID = authorKey,
-                Name = authorName
-            }).Entity;
-        }
-        
+            OLID = authorKey,
+            Name = authorName
+        }).Entity;
+
         var bookEntry = new BookEntry
         {
             OLID = doc.key,
@@ -44,7 +39,7 @@ public class OpenLibraryService(HttpClient httpClient, CheesarrDbContext db, ILo
             Title = doc.title,
             Author = author,
             FirstPublishYear = doc.first_publish_year,
-            GrabType = grabType,
+            WantedTypes = bookEntryType,
         };
 
         db.Books.Add(bookEntry);

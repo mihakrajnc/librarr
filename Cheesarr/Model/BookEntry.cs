@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
 namespace Cheesarr.Model;
@@ -7,36 +6,48 @@ namespace Cheesarr.Model;
 [Index(nameof(OLID), IsUnique = true)]
 public class BookEntry
 {
-    [Key] public int Id { get; set; }
+    [Key]                      public int    Id               { get; init; }
+    [Required, MaxLength(20)]  public string OLID             { get; init; } = string.Empty;
+    [Required, MaxLength(20)]  public string CoverEditionKey  { get; init; } = string.Empty;
+    [Required, MaxLength(255)] public string Title            { get; init; } = string.Empty;
+    public                            int    FirstPublishYear { get; init; } = -1;
 
-    [Required] public string   OLID              { get; set; } = string.Empty;
-    [Required] public string   CoverEditionKey  { get; set; } = string.Empty;
-    [Required] public string   Title            { get; set; } = string.Empty;
-    public            int      FirstPublishYear { get; set; }
-    public            Status   Status           { get; set; } = Status.Wanted;
-    public            GrabType GrabType         { get; set; }
-    
-    public string EBookTorrentHash { get; set; } = string.Empty;
+    public virtual required AuthorEntry   Author           { get; init; }
+    public                  TorrentEntry? EBookTorrent     { get; set; }
+    public                  TorrentEntry? AudiobookTorrent { get; set; }
+    public                  FileEntry?    EBookFile        { get; set; }
+    public                  FileEntry?    AudiobookFile    { get; set; }
 
 
-    public                                int         AuthorId { get; set; }
-    [ForeignKey(nameof(AuthorId))] public virtual AuthorEntry Author   { get; set; }
-    
-    public virtual List<FileEntry> Files { get; set; } = [];
+    // public                                        int         AuthorId { get; set; }
+    // [ForeignKey(nameof(AuthorId))] public virtual AuthorEntry Author   { get; set; }
+
+    public BookEntryType WantedTypes     { get; set; } = BookEntryType.None;
+    public Status        EBookStatus     { get; set; } = Status.Missing;
+    public Status        AudiobookStatus { get; set; } = Status.Missing;
 }
 
-public enum GrabType
+// public enum GrabType
+// {
+//     EBook,
+//     Audiobook,
+//     Both,
+// }
+
+[Flags]
+public enum BookEntryType : byte
 {
-    EBook,
-    Audiobook,
-    Both,
+    EBook = 1 << 0,
+    Audiobook = 1 << 1,
+    Both = EBook | Audiobook,
+    None = 0,
 }
 
 public enum Status
 {
-    Wanted = 0,
-    Grabbed = 1,
-    Downloading = 2,
-    Downloaded = 3,
-    Imported = 4,
+    Missing = 0, // Book has been added but release was not found yet
+    Grabbed = 1, // Release was sent to download client
+    Downloading = 2, // Download client has reported the book is added and downloading
+    Downloaded = 3, // Book has been downloaded but not yet imported
+    Imported = 4, // Book has been imported into the library
 }
