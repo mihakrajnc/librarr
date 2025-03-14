@@ -6,25 +6,21 @@ namespace Cheesarr.Model;
 [Index(nameof(OLID), IsUnique = true)]
 public class BookEntry
 {
-    [Key]                      public int    Id               { get; init; }
-    [Required, MaxLength(20)]  public string OLID             { get; init; } = string.Empty;
-    [Required, MaxLength(20)]  public string CoverEditionKey  { get; init; } = string.Empty;
-    [Required, MaxLength(255)] public string Title            { get; init; } = string.Empty;
-    public                            int    FirstPublishYear { get; init; } = -1;
-
-    public virtual required AuthorEntry   Author           { get; init; }
-    public                  TorrentEntry? EBookTorrent     { get; set; }
-    public                  TorrentEntry? AudiobookTorrent { get; set; }
-    public                  FileEntry?    EBookFile        { get; set; }
-    public                  FileEntry?    AudiobookFile    { get; set; }
-
-
-    // public                                        int         AuthorId { get; set; }
-    // [ForeignKey(nameof(AuthorId))] public virtual AuthorEntry Author   { get; set; }
+    [Key]                      public          int    Id               { get; init; }
+    [Required, MaxLength(20)]  public required string OLID             { get; init; }
+    [Required, MaxLength(20)]  public required string CoverEditionKey  { get; init; }
+    [Required, MaxLength(255)] public required string Title            { get; init; }
+    public                                     int    FirstPublishYear { get; init; }
 
     public BookEntryType WantedTypes     { get; set; } = BookEntryType.None;
     public Status        EBookStatus     { get; set; } = Status.Missing;
     public Status        AudiobookStatus { get; set; } = Status.Missing;
+
+    public required AuthorEntry   Author           { get; init; }
+    public          TorrentEntry? EBookTorrent     { get; set; }
+    public          TorrentEntry? AudiobookTorrent { get; set; }
+    public          FileEntry?    EBookFile        { get; set; }
+    public          FileEntry?    AudiobookFile    { get; set; }
 }
 
 // public enum GrabType

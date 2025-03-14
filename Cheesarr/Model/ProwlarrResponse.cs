@@ -1,36 +1,37 @@
 namespace Cheesarr.Model;
 
-public class ProwlarrItem
+// ReSharper disable InconsistentNaming
+[Serializable]
+public record ProwlarrSearchResponseItem(
+    string guid,
+    int age,
+    double ageHours,
+    double ageMinutes,
+    int size,
+    int files,
+    int grabs,
+    int indexerId,
+    string indexer,
+    string title,
+    string sortTitle,
+    int imdbId,
+    int tmdbId,
+    int tvdbId,
+    int tvMazeId,
+    DateTime publishDate,
+    string downloadUrl,
+    string infoUrl,
+    List<string> indexerFlags,
+    List<ProwlarrSearchResponseItem.Category> categories,
+    int seeders,
+    int leechers,
+    string protocol,
+    string fileName)
 {
-    public string         guid         { get; set; }
-    public int            age          { get; set; }
-    public double         ageHours     { get; set; }
-    public double         ageMinutes   { get; set; }
-    public int            size         { get; set; }
-    public int            files        { get; set; }
-    public int            grabs        { get; set; }
-    public int            indexerId    { get; set; }
-    public string         indexer      { get; set; }
-    public string         title        { get; set; }
-    public string         sortTitle    { get; set; }
-    public int            imdbId       { get; set; }
-    public int            tmdbId       { get; set; }
-    public int            tvdbId       { get; set; }
-    public int            tvMazeId     { get; set; }
-    public DateTime       publishDate  { get; set; }
-    public string         downloadUrl  { get; set; }
-    public string         infoUrl      { get; set; }
-    public List<string>   indexerFlags { get; set; }
-    public List<Category> categories   { get; set; }
-    public int            seeders      { get; set; }
-    public int            leechers     { get; set; }
-    public string         protocol     { get; set; }
-    public string         fileName     { get; set; }
-    
-    public class Category
-    {
-        public int          id            { get; set; }
-        public string       name          { get; set; }
-        public List<object> subCategories { get; set; }
-    }
+    [Serializable]
+    public record Category(
+        int id,
+        string name,
+        List<object> subCategories
+    );
 }

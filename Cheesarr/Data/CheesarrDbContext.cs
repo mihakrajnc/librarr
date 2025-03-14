@@ -12,32 +12,35 @@ public class CheesarrDbContext(DbContextOptions options) : DbContext(options)
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // EBookTorrent
+        // Shadow property for EBookOfId
+        modelBuilder.Entity<TorrentEntry>()
+            .Property<int?>("EBookOfId");
+
+        // Relationship for EBookTorrent
         modelBuilder.Entity<BookEntry>()
             .HasOne(b => b.EBookTorrent)
-            .WithOne(t => t.EBookOf)
-            .HasForeignKey<TorrentEntry>(t => t.EBookOfId)
+            .WithOne() // no navigation in TorrentEntry
+            .HasForeignKey<TorrentEntry>("EBookOfId")
             .OnDelete(DeleteBehavior.Cascade);
-        
-        // AudiobookTorrent
+
+        // Shadow property for AudiobookOfId
+        modelBuilder.Entity<TorrentEntry>()
+            .Property<int?>("AudiobookOfId");
+
+        // Relationship for AudiobookTorrent
         modelBuilder.Entity<BookEntry>()
             .HasOne(b => b.AudiobookTorrent)
-            .WithOne(t => t.AudiobookOf)
-            .HasForeignKey<TorrentEntry>(t => t.AudiobookOfId)
+            .WithOne()
+            .HasForeignKey<TorrentEntry>("AudiobookOfId")
             .OnDelete(DeleteBehavior.Cascade);
+    
     }
-        
-        
-        // modelBuilder.Entity<BookEntry>()
-        //     .HasOne(b => b.AudiobookFile)
-        //     .WithOne(f => f.Book) // FileEntry must have a BookEntry
-        //     .HasForeignKey<FileEntry>(f => f.BookId) // Foreign key lives in FileEntry
-        //     .IsRequired(); // FileEntry must always have a BookEntry
-        //
-        // modelBuilder.Entity<FileEntry>()
-        //     .HasOne(f => f.Book)
-        //     .WithOne(b => b.AudiobookFile)
-        //     .HasForeignKey<BookEntry>(b => b.AudiobookFileId) // Foreign key reference in BookEntry
-        //     .IsRequired(false); // AudiobookFile in BookEntry is optional
+    
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        // For every enum property in your model, store it as a string
+        configurationBuilder.Properties<Enum>()
+            .HaveConversion<string>();
+    }
     
 }

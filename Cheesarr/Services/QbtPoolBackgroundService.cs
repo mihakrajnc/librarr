@@ -35,7 +35,7 @@ public class QbtPoolBackgroundService(
             .Select(t => t.Hash);
 
         if (!hashes.Any()) return;
-        
+
         var qbtTorrents = await qbtService.GetTorrents(hashes);
 
         if (qbtTorrents.Length == 0)
@@ -57,30 +57,8 @@ public class QbtPoolBackgroundService(
             torrentEntry.ContentPath = torrentInfo.content_path;
 
             db.Torrents.Update(torrentEntry);
-            
-            logger.LogInformation($"Set torrent status to {torrentEntry.TorrentStatus}: {torrentEntry.Hash}");
 
-            //
-            // bookEntry.Status = torrentInfo.completion_on != -1 // TODO: Probably need to check against other values?
-            //     ? Status.Downloaded
-            //     : Status.Downloading;
-            //
-            // if (bookEntry.Status == Status.Downloaded)
-            // {
-            //     try
-            //     {
-            //         await ImportEbook(bookEntry, torrentInfo.content_path, db);
-            //         bookEntry.Status = Status.Imported;
-            //     }
-            //     catch (Exception e)
-            //     {
-            //         logger.LogError(e, $"Failed to import book: {bookEntry.Title}");
-            //     }
-            // }
-            //
-            // db.Books.Update(bookEntry);
-            //
-            // logger.LogInformation($"Set book status to {bookEntry.Status}: {bookEntry.Title}");
+            logger.LogInformation($"Set torrent status to {torrentEntry.TorrentStatus}: {torrentEntry.Hash}");
         }
 
         await db.SaveChangesAsync();
@@ -88,78 +66,8 @@ public class QbtPoolBackgroundService(
 
     private bool IsDownloaded(QBTTorrentInfoResponse torrentInfo)
     {
-        return torrentInfo.state is TorrentState.PausedUp or TorrentState.Uploading or TorrentState.StalledUp
-            or TorrentState.QueuedUp or TorrentState.ForcedUp;
+        return torrentInfo.state is QBTTorrentInfoResponse.State.PausedUp or QBTTorrentInfoResponse.State.Uploading
+            or QBTTorrentInfoResponse.State.StalledUp
+            or QBTTorrentInfoResponse.State.QueuedUp or QBTTorrentInfoResponse.State.ForcedUp;
     }
-
-    // TODO: Move to it's own service
-    // private async Task ImportEbook(BookEntry book, string path, CheesarrDbContext db)
-    // {
-    //     logger.LogInformation($"Importing book: {book.Title}");
-    //
-    //     var isDirectory = Directory.Exists(path);
-    //     var isFile = File.Exists(path);
-    //     var profileSettings = settingsService.GetSettings<ProfileSettingsData>();
-    //     var librarySettings = settingsService.GetSettings<LibrarySettingsData>();
-    //
-    //     if (!isDirectory && !isFile)
-    //     {
-    //         logger.LogError($"Path does not exist: {path}");
-    //         throw new Exception($"Path does not exist: {path}");
-    //     }
-    //
-    //     // Find file
-    //     string? sourceFile = null;
-    //     string? sourceFormat = null;
-    //     if (isDirectory)
-    //     {
-    //         foreach (var format in profileSettings.EBookProfile.Formats.Where(f => f.Enabled))
-    //         {
-    //             sourceFile = Directory.GetFiles(path, $"*.{format.Name}").FirstOrDefault();
-    //             sourceFormat = format.Name;
-    //             if (sourceFile != null) break;
-    //         }
-    //     }
-    //     else
-    //     {
-    //         // TODO: Not great
-    //         sourceFile = path;
-    //         foreach (var format in profileSettings.EBookProfile.Formats.Where(f => f.Enabled))
-    //         {
-    //             sourceFormat = format.Name;
-    //             if (sourceFile != null) break;
-    //         }
-    //     }
-    //
-    //     if (sourceFile == null || sourceFormat == null)
-    //     {
-    //         logger.LogError(
-    //             $"Could not find file for book: {book.Title} with format: {sourceFormat}, source: {sourceFile}");
-    //         throw new Exception($"Could not find file for book: {book.Title}");
-    //     }
-    //
-    //     logger.LogInformation($"Using source file: {sourceFile}");
-    //
-    //     // Import book
-    //     // TODO: Support hardlinks
-    //     var authorFolderName = FileUtils.SanitizePathName(book.Author.Name);
-    //     var bookFolderName = FileUtils.SanitizePathName(book.Title);
-    //
-    //     var destinationDir =
-    //         Directory.CreateDirectory(Path.Combine(librarySettings.LibraryPath, authorFolderName,
-    //             bookFolderName)); // TODO: Verify?
-    //     var destinationFile = Path.Combine(destinationDir.FullName, Path.GetFileName(sourceFile));
-    //
-    //     File.Copy(sourceFile, destinationFile, true); // TODO: Should we overwrite?
-    //
-    //     // Add the file to the db and book entry
-    //     var fileEntry = (await db.Files.AddAsync(new FileEntry
-    //     {
-    //         Path = destinationFile,
-    //         Format = sourceFormat
-    //     })).Entity;
-    //     book.Files.Add(fileEntry);
-    //
-    //     logger.LogInformation($"Imported book: {book.Title} to {destinationFile}");
-    // }
 }

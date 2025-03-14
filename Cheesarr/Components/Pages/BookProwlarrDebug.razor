@@ -42,7 +42,7 @@
 @code {
     [Parameter] public int Id { get; set; }
 
-    private List<ProwlarrItem> _results = [];
+    private List<ProwlarrSearchResponseItem> _results = [];
 
     private bool _loading = true;
 
@@ -60,7 +60,7 @@
         _loading = false;
     }
 
-    private async Task SendToDownloadClient(ProwlarrItem pi)
+    private async Task SendToDownloadClient(ProwlarrSearchResponseItem pi)
     {
         var (data, hash) = await ProwlarrService.DownloadTorrentFile(pi.downloadUrl);
         await qbtService.AddTorrent(data, hash);

@@ -118,7 +118,7 @@ public class GrabService(
         public bool VIP;
         public required HashSet<string> Formats;
 
-        public static ParsedItem Create(ProwlarrItem pi)
+        public static ParsedItem Create(ProwlarrSearchResponseItem pi)
         {
             var firstBracket = pi.title.IndexOf('[');
             var secondBracket = pi.title.IndexOf(']', firstBracket + 1);

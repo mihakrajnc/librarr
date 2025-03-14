@@ -58,7 +58,7 @@
     
     private bool _loading;
 
-    private List<OLDoc> _books = new();
+    private List<OpenLibraryResponse.Document> _books = new();
     private HashSet<string> _addedBooks = new();
 
     protected override async Task OnInitializedAsync()
@@ -66,12 +66,12 @@
         _addedBooks = await db.Books.Select(be => be.OLID).ToHashSetAsync();
     }
 
-    private async Task<bool> IsBookInDatabaseAsync(OLDoc book)
+    private async Task<bool> IsBookInDatabaseAsync(OpenLibraryResponse.Document book)
     {
         return await db.Books.AnyAsync(b => b.OLID == book.key);
     }
 
-    private bool IsBookAlreadyAdded(OLDoc book)
+    private bool IsBookAlreadyAdded(OpenLibraryResponse.Document book)
     {
         return _addedBooks.Contains(book.key);
     }
@@ -87,7 +87,7 @@
         _loading = false;
     }
 
-    private async Task OnAddClicked(OLDoc book)
+    private async Task OnAddClicked(OpenLibraryResponse.Document book)
     {
         if (await IsBookInDatabaseAsync(book))
         {

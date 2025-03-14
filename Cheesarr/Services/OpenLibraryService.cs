@@ -6,12 +6,13 @@ namespace Cheesarr.Services;
 public class OpenLibraryService(HttpClient httpClient, CheesarrDbContext db, ILogger<OpenLibraryService> logger)
 {
     private const string SEARCH_API_URL = "search.json?q={0}";
+    private const string AUTHOR_WORKS_API = "authors/{0}/works.json";
 
-    public async Task<IReadOnlyList<OLDoc>> SearchBooksAsync(string query)
+    public async Task<IReadOnlyList<OpenLibraryResponse.Document>> SearchBooksAsync(string query)
     {
-        var uri = string.Format(SEARCH_API_URL, Uri.EscapeDataString(query));
+        var uri = string.Format(SEARCH_API_URL, Uri.EscapeDataString(query + " language:eng"));
 
-        logger.LogInformation($"Searching for books from {uri} via {httpClient.BaseAddress}");
+        logger.LogInformation($"Searching for books from {uri}");
 
         var response = await httpClient.GetFromJsonAsync<OpenLibraryResponse>(uri);
 
@@ -21,7 +22,7 @@ public class OpenLibraryService(HttpClient httpClient, CheesarrDbContext db, ILo
     }
 
     // TODO: Shouldn't really be here
-    public async Task<BookEntry> AddBook(OLDoc doc, BookEntryType bookEntryType)
+    public async Task<BookEntry> AddBook(OpenLibraryResponse.Document doc, BookEntryType bookEntryType)
     {
         var authorName = doc.author_name[0]; // TODO: For now we just use the first author
         var authorKey = doc.author_key[0];
