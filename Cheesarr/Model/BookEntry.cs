@@ -4,10 +4,10 @@ namespace Cheesarr.Model;
 
 public class BookEntry
 {
-    [Key, MaxLength(20)]  public required string ID             { get; init; }
-    [Required, MaxLength(20)]  public required string CoverEditionKey  { get; init; }
+    [Key, MaxLength(20)]       public required string ID               { get; init; }
     [Required, MaxLength(255)] public required string Title            { get; init; }
     public                                     int    FirstPublishYear { get; init; }
+    [Required, MaxLength(255)] public          string CoverURL         { get; init; }
 
     public BookEntryType WantedTypes     { get; set; } = BookEntryType.None;
     public Status        EBookStatus     { get; set; } = Status.Missing;

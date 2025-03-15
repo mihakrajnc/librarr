@@ -50,8 +50,9 @@ builder.Services.AddSingleton<SnackMessageBus>();
 // API Services
 builder.Services.AddHttpClient<IMetadataService, OpenLibraryMetadataService>(client =>
 {
-    client.BaseAddress = new Uri("https://openlibrary.org/");
+    client.BaseAddress = new Uri("https://openlibrary.org");
 });
+
 builder.Services.AddHttpClient<IReleaseSearchService, ProwlarrReleaseSearchService>((sp, client) =>
 {
     var settings = sp.GetRequiredService<SettingsService>().GetSettings<ProwlarrSettingsData>();

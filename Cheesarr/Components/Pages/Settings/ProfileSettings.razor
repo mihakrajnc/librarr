@@ -4,35 +4,38 @@
 
 @inject SettingsService SettingsService
 
-<MudText Typo="Typo.h3">EBooks</MudText>
-
-<MudDropContainer T="ProfileSettingsData.Profile.Format" Items="_profileSettingsData.EBookProfile.Formats"
-                  ItemsSelector="@((item, dropzone) => true)" ItemDropped="ItemUpdated"
-                  Class="d-flex flex-wrap flex-grow-1">
-    <ChildContent>
-        <MudDropZone T="ProfileSettingsData.Profile.Format" AllowReorder="true"
-                     Class="rounded mud-background-gray pa-6 ma-8 flex-grow-1">
-        </MudDropZone>
-    </ChildContent>
-    <ItemRenderer>
-        <MudPaper Elevation="25" Class="pa-4 my-4">@context.Name</MudPaper>
-    </ItemRenderer>
-</MudDropContainer>
-
-<MudText Typo="Typo.h3">Audiobooks</MudText>
-
-<MudDropContainer T="ProfileSettingsData.Profile.Format" Items="_profileSettingsData.AudiobookProfile.Formats"
-                  ItemsSelector="@((item, dropzone) => true)" ItemDropped="ItemUpdated"
-                  Class="d-flex flex-wrap flex-grow-1">
-    <ChildContent>
-        <MudDropZone T="ProfileSettingsData.Profile.Format" AllowReorder="true"
-                     Class="rounded mud-background-gray pa-6 ma-8 flex-grow-1">
-        </MudDropZone>
-    </ChildContent>
-    <ItemRenderer>
-        <MudPaper Elevation="25" Class="pa-4 my-4">@context.Name</MudPaper>
-    </ItemRenderer>
-</MudDropContainer>
+<MudGrid>
+    <MudItem>
+        <MudDropContainer T="ProfileSettingsData.Profile.Format" Items="_profileSettingsData.EBookProfile.Formats"
+                          ItemsSelector="@((item, dropzone) => true)" ItemDropped="ItemUpdated"
+                          Class="d-flex flex-wrap flex-grow-1">
+            <ChildContent>
+                <MudDropZone T="ProfileSettingsData.Profile.Format" AllowReorder="true"
+                             Class="rounded mud-background-gray pa-6 ma-8 flex-grow-1">
+                    <MudText Typo="Typo.h6" Class="mb-4">EBooks</MudText>
+                </MudDropZone>
+            </ChildContent>
+            <ItemRenderer>
+                <MudPaper Elevation="25" Class="pa-4 my-4">@context.Name</MudPaper>
+            </ItemRenderer>
+        </MudDropContainer>
+    </MudItem>
+    <MudItem>
+        <MudDropContainer T="ProfileSettingsData.Profile.Format" Items="_profileSettingsData.AudiobookProfile.Formats"
+                          ItemsSelector="@((item, dropzone) => true)" ItemDropped="ItemUpdated"
+                          Class="d-flex flex-wrap flex-grow-1">
+            <ChildContent>
+                <MudDropZone T="ProfileSettingsData.Profile.Format" AllowReorder="true"
+                             Class="rounded mud-background-gray pa-6 ma-8 flex-grow-1">
+                    <MudText Typo="Typo.h6" Class="mb-4">Audiobooks</MudText>
+                </MudDropZone>
+            </ChildContent>
+            <ItemRenderer>
+                <MudPaper Elevation="25" Class="pa-4 my-4">@context.Name</MudPaper>
+            </ItemRenderer>
+        </MudDropContainer>
+    </MudItem>
+</MudGrid>
 
 <MudButton ButtonType="ButtonType.Submit" OnClick="OnSaveClicked" Variant="Variant.Filled" FullWidth="true"
            Color="Color.Primary"
@@ -57,7 +60,8 @@
     {
         _profileSettingsData.EBookProfile.Formats.Sort((a, b) => a.Order.CompareTo(b.Order));
         _profileSettingsData.AudiobookProfile.Formats.Sort((a, b) => a.Order.CompareTo(b.Order));
-        
+
         SettingsService.SaveSettings(_profileSettingsData);
     }
+
 }

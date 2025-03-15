@@ -5,5 +5,6 @@ public record BookSearchItem(
     string Title,
     string AuthorName,
     string AuthorID,
-    int PublishYear
+    int PublishYear,
+    string CoverURL
 );

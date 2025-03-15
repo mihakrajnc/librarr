@@ -15,12 +15,14 @@
         <MudTh>OLID</MudTh>
         <MudTh>Name</MudTh>
         <MudTh>BookCount</MudTh>
+        <MudTh>Details</MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="ID">@context.Id</MudTd>
         <MudTd DataLabel="OLID">@context.OLID</MudTd>
         <MudTd DataLabel="Name">@context.Name</MudTd>
         <MudTd DataLabel="BookCount">@context.Books.Count</MudTd>
+        <MudTd DataLabel="Details"><MudButton Href="@($"authors/{context.Id}")">Details</MudButton></MudTd>
     </RowTemplate>
     <PagerContent>
         <MudTablePager/>

@@ -1,22 +1,17 @@
-﻿@page "/search"
-
+@page "/authors/{Id:int}"
 @using Cheesarr.Components.Dialogs
 @using Cheesarr.Data
 @using Cheesarr.Services.Metadata
+@using Microsoft.EntityFrameworkCore
 
 @inject IMetadataService  MetadataService
 @inject CheesarrDbContext db
 @inject IDialogService    DialogService
 @inject ILogger<Search>   Logger
 
-<PageTitle>Book Search</PageTitle>
+<PageTitle>Author Details</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">Search</MudText>
-
-<MudTextField Label="Book Title" Variant="Variant.Filled" InputType="InputType.Search" Clearable="true"
-              HelperText="The title of your book" DebounceInterval="500"
-              T="string" Disabled="@_loading"
-              ValueChanged="OnSearchValueChanged"/>
+<MudText Typo="Typo.h3" GutterBottom="true">Author Details</MudText>
 
 <MudTable Items="@_searchResults" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading"
           LoadingProgressColor="Color.Info">
@@ -44,6 +39,8 @@
 </MudTable>
 
 @code {
+    [Parameter] public int Id { get; set; }
+    
     private readonly CancellationTokenSource _cts = new();
     private bool _searchOnAdd = true;
 
@@ -51,13 +48,15 @@
 
     private BookSearchItem[] _searchResults = [];
 
-    private async Task OnSearchValueChanged(string searchTerm)
+    protected override async Task OnInitializedAsync()
     {
         _loading = true;
 
         //await _cts.CancelAsync();
 
-        _searchResults = await MetadataService.Search(searchTerm, default);
+        var author = await db.Authors.FirstAsync(a => a.Id == Id);
+
+        _searchResults = await MetadataService.FetchAuthorBooks(author.OLID, author.Name);
 
         _loading = false;
     }

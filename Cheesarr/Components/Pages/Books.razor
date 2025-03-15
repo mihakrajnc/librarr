@@ -31,7 +31,7 @@
         <MudTd DataLabel="Published">@context.FirstPublishYear</MudTd>
         <MudTd DataLabel="EB Hash">@GetShortHash(context)</MudTd>
         <MudTd DataLabel="Cover">
-            <MudImage Src="@($"https://covers.openlibrary.org/b/olid/{context.CoverEditionKey}-M.jpg")"
+            <MudImage Src="@context.CoverURL"
                       Width="100" Height="100"
                       Alt="Icon" Elevation="0"
                       Class="rounded-lg"/>

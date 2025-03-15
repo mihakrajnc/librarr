@@ -14,8 +14,7 @@
     {
         <MudItem>
             <MudCard Style="max-width: 200px;">
-                <MudCardMedia Image="@($"https://covers.openlibrary.org/b/olid/{book.CoverEditionKey}-M.jpg")"
-                              Height="175"/>
+                <MudCardMedia Image="@book.CoverURL"Height="175"/>
                 <MudCardContent>
                     <MudText Typo="Typo.subtitle1" Class="mb-3">
                         @book.Title
