@@ -1,8 +1,10 @@
 @page "/qbt"
+@using Cheesarr.Services.Download
 @using Cheesarr.Settings
 
 @inject SettingsService           SettingsService
 @inject ILogger<ProwlarrSettings> Logger
+@inject IDownloadService        QBTDownloadService
 
 <PageTitle>qBittorrent Settings</PageTitle>
 
@@ -35,15 +37,33 @@
                       HelperText="(optional) Category of the torrent"
                       T="string"/>
 
-        <MudButton ButtonType="ButtonType.Submit" OnClick="OnSaveClicked" Variant="Variant.Filled" FullWidth="true" Color="Color.Primary"
+        <MudButton ButtonType="ButtonType.Submit" OnClick="OnSaveClicked" Variant="Variant.Filled" FullWidth="true"
+                   Color="Color.Primary"
                    Class="ml-auto">Save
         </MudButton>
     </MudStack>
 </EditForm>
 
+<MudButton Class="mt-5" Disabled="@_runningTest" OnClick="OnTestClicked" Variant="Variant.Filled"
+           Color="@(_testError ? Color.Error : Color.Primary)"
+           StartIcon="@(_testError ? Icons.Material.Filled.Error : Icons.Material.Filled.CheckCircle)">
+    @if (_runningTest)
+    {
+        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+        <MudText Class="ms-2">Processing</MudText>
+    }
+    else
+    {
+        <MudText>Test</MudText>
+    }
+</MudButton>
+
 @code {
     private QBTSettingsData _settings = null!;
-    
+
+    private bool _runningTest;
+    private bool _testError;
+
     protected override void OnInitialized()
     {
         _settings = SettingsService.GetSettings<QBTSettingsData>();
@@ -54,6 +74,19 @@
         SettingsService.SaveSettings(_settings);
 
         Logger.LogInformation("QBT settings saved");
+    }
+
+    private async Task OnTestClicked()
+    {
+        _runningTest = true;
+        _testError = false;
+
+        await Task.Delay(500);
+
+        var success = await QBTDownloadService.TestConnection();
+
+        _runningTest = false;
+        _testError = !success;
     }
 
 }

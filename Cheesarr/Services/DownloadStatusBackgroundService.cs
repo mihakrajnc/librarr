@@ -23,8 +23,6 @@ public class DownloadStatusBackgroundService(
 
     private async Task RunUpdate()
     {
-        logger.LogInformation("Querying QBT for torrent status");
-
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetService<CheesarrDbContext>()!;
 
@@ -33,6 +31,8 @@ public class DownloadStatusBackgroundService(
             .Select(t => t.Hash);
 
         if (!hashes.Any()) return;
+
+        logger.LogInformation("Querying QBT for torrent status");
 
         var torrents = await dlService.GetTorrents(hashes);
 

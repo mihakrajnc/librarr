@@ -7,6 +7,7 @@ public class QBTDownloadService(HttpClient httpClient, SettingsService ss, ILogg
 {
     private const string ADD_API = "/api/v2/torrents/add";
     private const string INFO_API = "/api/v2/torrents/info";
+    private const string VERSION_API = "/api/v2/app/version";
 
     public async Task AddTorrent(byte[] torrentData, string torrentHash)
     {
@@ -47,5 +48,21 @@ public class QBTDownloadService(HttpClient httpClient, SettingsService ss, ILogg
 
         return (await response.Content.ReadFromJsonAsync<QBTTorrentItemResponse[]>())?.Select(r => r.ToTorrentItem())
             .ToArray() ?? [];
+    }
+
+    public async Task<bool> TestConnection()
+    {
+        logger.LogError($"Testing QBT connection.");
+
+        var response = await httpClient.GetAsync(VERSION_API);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogError($"Test failed: {response.StatusCode}");
+            return false;
+        }
+        
+        logger.LogError($"Test succeeded, response: {await response.Content.ReadAsStringAsync()}");
+        return true;
     }
 }

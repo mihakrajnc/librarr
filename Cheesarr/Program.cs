@@ -64,8 +64,8 @@ builder.Services.AddHttpClient<IDownloadService, QBTDownloadService>((sp, client
 {
     var settings = sp.GetRequiredService<SettingsService>().GetSettings<QBTSettingsData>();
     client.BaseAddress = new Uri($"{(settings.UseSSL ? "https" : "http")}://{settings.Host}:{settings.Port}");
-    // TODO: Auth?
-});
+}).AddHttpMessageHandler<QBTAuthHandler>();
+builder.Services.AddTransient<QBTAuthHandler>();
 
 var app = builder.Build();
 
