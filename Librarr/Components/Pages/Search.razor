@@ -73,7 +73,7 @@
 
     private bool IsBookAlreadyAdded(BookSearchItem book)
     {
-        return db.Books.Any(b => b.ID == book.ID);
+        return db.Books.Any(b => b.OLID == book.ID);
     }
 
 }

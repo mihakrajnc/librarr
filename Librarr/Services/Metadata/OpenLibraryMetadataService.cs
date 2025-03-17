@@ -71,7 +71,7 @@ public class OpenLibraryMetadataService(HttpClient httpClient, ILogger<OpenLibra
         }
         catch (Exception e)
         {
-            logger.LogError(e, $"Failed to parse OpenLibrary search item: {doc.title}");
+            logger.LogError(e, $"Failed to parse OpenLibrary search item: {doc.key} - {doc.title}");
             return null;
         }
     }

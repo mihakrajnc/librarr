@@ -19,17 +19,15 @@
         <MudTh>Title</MudTh>
         <MudTh>Author</MudTh>
         <MudTh>Published</MudTh>
-        <MudTh>EB Hash</MudTh>
         <MudTh>Cover</MudTh>
         <MudTh>Find</MudTh>
         <MudTh>Remove</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="OLID">@context.ID</MudTd>
+        <MudTd DataLabel="OLID">@context.OLID</MudTd>
         <MudTd DataLabel="Title">@context.Title</MudTd>
-        <MudTd DataLabel="Author">@context.Author?.Name</MudTd>
+        <MudTd DataLabel="Author">@context.Author.Name</MudTd>
         <MudTd DataLabel="Published">@context.FirstPublishYear</MudTd>
-        <MudTd DataLabel="EB Hash">@GetShortHash(context)</MudTd>
         <MudTd DataLabel="Cover">
             <MudImage Src="@context.CoverURL"
                       Width="100" Height="100"
@@ -63,7 +61,7 @@
         _loading = true;
         try
         {
-            _books = await db.Books.ToListAsync();
+            _books = await db.Books.Include(b => b.Author).ToListAsync();
         }
         catch (Exception ex)
         {
@@ -78,14 +76,6 @@
     private async Task GrabBook(BookEntry book)
     {
         await GrabService.SearchForBook(book);
-    }
-
-    private string GetShortHash(BookEntry book)
-    {
-        var hash = book.EBookTorrent?.Hash;
-        if (hash == null) return string.Empty;
-        
-        return hash.Substring(0, 7) + "...";
     }
 
     private async Task RemoveBook(BookEntry book)

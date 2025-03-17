@@ -12,5 +12,5 @@ public class AuthorEntry
 
     [Required] public string Name { get; set; }
 
-    public virtual List<BookEntry> Books { get; set; } = [];
+    public List<BookEntry> Books { get; set; } = [];
 }

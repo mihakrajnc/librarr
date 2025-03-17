@@ -96,7 +96,7 @@ public record QBTTorrentItemResponse(
         return new TorrentItem(
             content_path,
             hash,
-            isDownloaded ? TorrentItem.DownloadStatus.Downloaded : TorrentItem.DownloadStatus.Downloading
+            isDownloaded
         );
     }
 }

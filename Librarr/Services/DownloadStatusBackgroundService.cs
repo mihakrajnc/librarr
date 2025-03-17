@@ -11,53 +11,57 @@ public class DownloadStatusBackgroundService(
 {
     private const int POOL_DELAY = 5000;
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken ct)
     {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            await RunUpdate();
-
-            await Task.Delay(POOL_DELAY, stoppingToken);
-        }
+        // while (!ct.IsCancellationRequested)
+        // {
+        //     using var scope = scopeFactory.CreateScope();
+        //     var db = scope.ServiceProvider.GetService<LibrarrDbContext>()!;
+        //
+        //     await UpdateTorrents(db);
+        //
+        //     await db.SaveChangesAsync(ct);
+        //
+        //     await Task.Delay(POOL_DELAY, ct);
+        // }
     }
 
-    private async Task RunUpdate()
+    private async Task UpdateTorrents(LibrarrDbContext db)
     {
-        using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetService<LibrarrDbContext>()!;
-
-        var hashes = db.Torrents.Where(t =>
-                t.TorrentStatus != TorrentEntry.Status.Downloaded && t.TorrentStatus != TorrentEntry.Status.Imported)
-            .Select(t => t.Hash);
+        // We only update the status of non-imported torrents
+        var hashes = db.Torrents.Where(t => !t.IsImported).Select(t => t.Hash);
 
         if (!hashes.Any()) return;
 
         logger.LogInformation("Querying QBT for torrent status");
 
-        var torrents = await dlService.GetTorrents(hashes);
+        var torrents = (await dlService.GetTorrents(hashes)).ToDictionary(t => t.Hash);
 
-        if (torrents.Length == 0)
+        logger.LogInformation($"QBT responded with {torrents.Count} torrents");
+
+        foreach (var torrentEntry in db.Torrents.Where(t => !t.IsImported))
         {
-            logger.LogInformation("No matching torrents found");
-            return;
-        }
-
-        logger.LogInformation($"Found {torrents.Length} matching torrents");
-
-        foreach (var item in torrents)
-        {
-            var torrentEntry = db.Torrents.First(t => t.Hash == item.Hash);
-
-            torrentEntry.TorrentStatus = item.Status == TorrentItem.DownloadStatus.Downloaded
-                ? TorrentEntry.Status.Downloaded
-                : TorrentEntry.Status.Downloading;
-            torrentEntry.ContentPath = item.Path;
+            if (torrents.TryGetValue(torrentEntry.Hash, out var torrentItem))
+            {
+                torrentEntry.ContentPath = torrentItem.Path;
+                var newStatus = torrentItem.DownloadCompleted
+                    ? TorrentEntry.Status.Downloaded
+                    : TorrentEntry.Status.Downloading;
+                if (torrentEntry.TorrentStatus != newStatus)
+                {
+                    torrentEntry.TorrentStatus = newStatus;
+                    logger.LogInformation(
+                        $"Updated torrent status to {torrentEntry.TorrentStatus}: {torrentEntry.Hash}");
+                }
+            }
+            else
+            {
+                // Torrent was deleted from download client
+                torrentEntry.TorrentStatus = TorrentEntry.Status.Missing;
+                logger.LogWarning($"Missing torrent: {torrentEntry.Hash}");
+            }
 
             db.Torrents.Update(torrentEntry);
-
-            logger.LogInformation($"Set torrent status to {torrentEntry.TorrentStatus}: {torrentEntry.Hash}");
         }
-
-        await db.SaveChangesAsync();
     }
 }

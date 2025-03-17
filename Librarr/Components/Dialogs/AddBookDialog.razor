@@ -4,8 +4,8 @@
 @using Librarr.Services.Metadata
 
 @inject ILogger<AddBookDialog> Logger
-@inject LibrarrDbContext      db
-@inject GrabService GrabService
+@inject GrabService            GrabService
+@inject IServiceScopeFactory   ScopeFactory
 
 <MudDialog>
     <DialogContent>
@@ -71,22 +71,12 @@
         //     return;
         // }
         
-        Logger.LogInformation($"Saving {Book.Title} to DB");
-
-        BookEntryType entryType = BookEntryType.None;
-        if (ebook && audiobook)
-        {
-            entryType = BookEntryType.Both;
-        } else if (ebook)
-        {
-            entryType = BookEntryType.EBook;
-        } else if (audiobook)
-        {
-            entryType = BookEntryType.Audiobook;
-        }
+        using var scope = ScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetService<LibrarrDbContext>()!;
         
-        var be = await db.AddBook(Book, entryType);
-        // _addedBooks.Add(book.key);
+        Logger.LogInformation($"Saving {Book.Title} to DB");
+        
+        var be = await db.AddBook(Book, ebook, audiobook);
         
         if (_search)
         {

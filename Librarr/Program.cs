@@ -33,11 +33,9 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 // Database
-builder.Services.AddSqlite<LibrarrDbContext>("Data Source=db/mouse.db", null, options =>
+builder.Services.AddSqlite<LibrarrDbContext>("Data Source=db/librarr.sqlite", null, options =>
 {
-    options
-        // .UseLazyLoadingProxies()
-        .LogTo(Console.WriteLine, LogLevel.Warning);
+    options.LogTo(Console.WriteLine, LogLevel.Warning);
 });
 
 builder.Services.AddHostedService<DownloadStatusBackgroundService>();

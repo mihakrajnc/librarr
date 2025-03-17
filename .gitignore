@@ -1,5 +1,14 @@
-# Created by https://www.toptal.com/developers/gitignore/api/macos,rider
-# Edit at https://www.toptal.com/developers/gitignore?templates=macos,rider
+# Created by https://www.toptal.com/developers/gitignore/api/macos,rider,dotnetcore
+# Edit at https://www.toptal.com/developers/gitignore?templates=macos,rider,dotnetcore
+
+### DotnetCore ###
+# .NET Core build folders
+bin/
+obj/
+
+# Common node modules locations
+/node_modules
+/wwwroot/node_modules
 
 ### macOS ###
 # General
@@ -44,8 +53,6 @@ Temporary Items
 .idea/**/usage.statistics.xml
 .idea/**/dictionaries
 .idea/**/shelf
-
-*.user
 
 # AWS User-specific
 .idea/**/aws.xml
@@ -115,7 +122,11 @@ fabric.properties
 # Android studio 3.1+ serialized cache file
 .idea/caches/build_file_checksums.ser
 
-# End of https://www.toptal.com/developers/gitignore/api/macos,rider
+# End of https://www.toptal.com/developers/gitignore/api/macos,rider,dotnetcore
+
+# DotSettings user
+
+*.DotSettings.user
 
 # AppData
 Librarr/db/

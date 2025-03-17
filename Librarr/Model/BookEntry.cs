@@ -1,39 +1,53 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace Librarr.Model;
 
+[Index(nameof(OLID), IsUnique = true)]
 public class BookEntry
 {
-    [Key, MaxLength(20)]       public required string ID               { get; init; }
-    [Required, MaxLength(255)] public required string Title            { get; init; }
-    public                                     int    FirstPublishYear { get; init; }
-    [Required, MaxLength(255)] public          string CoverURL         { get; init; }
+    [Key] public int Id { get; init; }
 
-    public BookEntryType WantedTypes     { get; set; } = BookEntryType.None;
-    public Status        EBookStatus     { get; set; } = Status.Missing;
-    public Status        AudiobookStatus { get; set; } = Status.Missing;
+    [Required, MaxLength(20)]  public required string      OLID             { get; init; }
+    [Required, MaxLength(255)] public required string      Title            { get; init; }
+    public required                            int         FirstPublishYear { get; init; }
+    [Required, MaxLength(255)] public required string      CoverURL         { get; init; }
+    [Required]                 public required AuthorEntry Author           { get; init; }
 
-    public required AuthorEntry   Author           { get; init; }
-    public          TorrentEntry? EBookTorrent     { get; set; }
-    public          TorrentEntry? AudiobookTorrent { get; set; }
-    public          FileEntry?    EBookFile        { get; set; }
-    public          FileEntry?    AudiobookFile    { get; set; }
-}
+    public bool          EBookWanted      { get; set; } = false;
+    public bool          AudiobookWanted  { get; set; } = false;
+    public TorrentEntry? EBookTorrent     { get; set; }
+    public TorrentEntry? AudiobookTorrent { get; set; }
+    public FileEntry?    EBookFile        { get; set; }
+    public FileEntry?    AudiobookFile    { get; set; }
 
-[Flags]
-public enum BookEntryType : byte
-{
-    EBook = 1 << 0,
-    Audiobook = 1 << 1,
-    Both = EBook | Audiobook,
-    None = 0,
-}
 
-public enum Status
-{
-    Missing = 0, // Book has been added but release was not found yet
-    Grabbed = 1, // Release was sent to download client
-    Downloading = 2, // Download client has reported the book is added and downloading
-    Downloaded = 3, // Book has been downloaded but not yet imported
-    Imported = 4, // Book has been imported into the library
+    public Status EBookStatus     => GetStatus(EBookTorrent);
+    public Status AudiobookStatus => GetStatus(AudiobookTorrent);
+
+    private static Status GetStatus(TorrentEntry? torrent)
+    {
+        // TODO: Maybe we should also check the file here
+        if (torrent == null) return Status.Wanted;
+        if (torrent.IsImported) return Status.Imported;
+
+        return torrent.TorrentStatus switch
+        {
+            TorrentEntry.Status.Missing => Status.Missing,
+            TorrentEntry.Status.Downloading => Status.Downloading,
+            TorrentEntry.Status.Downloaded => Status.Downloaded,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+
+    public enum Status
+    {
+        Missing, // Torrent was grabbed but it was removed from the client before it could be imported
+        Wanted, // Book has been added but release was not found yet
+
+        // Grabbed, // Release was sent to download client
+        Downloading, // Download client has reported the book is added and downloading
+        Downloaded, // Book has been downloaded but not yet imported
+        Imported, // Book has been imported into the library
+    }
 }

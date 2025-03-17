@@ -13,27 +13,55 @@ public class LibrarrDbContext(DbContextOptions options) : DbContext(options)
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Shadow property for EBookOfId
-        modelBuilder.Entity<TorrentEntry>()
-            .Property<string?>("EBookOfId");
+        // Torrent entries
+        {
+            // Shadow property for EBookOfId
+            modelBuilder.Entity<TorrentEntry>()
+                .Property<int?>("EBookOfId");
 
-        // Relationship for EBookTorrent
-        modelBuilder.Entity<BookEntry>()
-            .HasOne(b => b.EBookTorrent)
-            .WithOne() // no navigation in TorrentEntry
-            .HasForeignKey<TorrentEntry>("EBookOfId")
-            .OnDelete(DeleteBehavior.Cascade);
+            // Relationship for EBookTorrent
+            modelBuilder.Entity<BookEntry>()
+                .HasOne(b => b.EBookTorrent)
+                .WithOne() // no navigation in TorrentEntry
+                .HasForeignKey<TorrentEntry>("EBookOfId")
+                .OnDelete(DeleteBehavior.Cascade);
 
-        // Shadow property for AudiobookOfId
-        modelBuilder.Entity<TorrentEntry>()
-            .Property<string?>("AudiobookOfId");
+            // Shadow property for AudiobookOfId
+            modelBuilder.Entity<TorrentEntry>()
+                .Property<int?>("AudiobookOfId");
 
-        // Relationship for AudiobookTorrent
-        modelBuilder.Entity<BookEntry>()
-            .HasOne(b => b.AudiobookTorrent)
-            .WithOne()
-            .HasForeignKey<TorrentEntry>("AudiobookOfId")
-            .OnDelete(DeleteBehavior.Cascade);
+            // Relationship for AudiobookTorrent
+            modelBuilder.Entity<BookEntry>()
+                .HasOne(b => b.AudiobookTorrent)
+                .WithOne()
+                .HasForeignKey<TorrentEntry>("AudiobookOfId")
+                .OnDelete(DeleteBehavior.Cascade);
+        }
+
+        // File entries
+        {
+            // Shadow property for EBookOfId
+            modelBuilder.Entity<FileEntry>()
+                .Property<int?>("EBookOfId");
+
+            // Relationship for EBookFile
+            modelBuilder.Entity<BookEntry>()
+                .HasOne(b => b.EBookFile)
+                .WithOne() // no navigation in TorrentEntry
+                .HasForeignKey<FileEntry>("EBookOfId")
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Shadow property for AudiobookOfId
+            modelBuilder.Entity<FileEntry>()
+                .Property<int?>("AudiobookOfId");
+
+            // Relationship for AudiobookFile
+            modelBuilder.Entity<BookEntry>()
+                .HasOne(b => b.AudiobookFile)
+                .WithOne()
+                .HasForeignKey<FileEntry>("AudiobookOfId")
+                .OnDelete(DeleteBehavior.Cascade);
+        }
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
@@ -44,9 +72,9 @@ public class LibrarrDbContext(DbContextOptions options) : DbContext(options)
     }
 
     // TODO: Should this be here?
-    public async Task<BookEntry> AddBook(BookSearchItem bookItem, BookEntryType bookEntryType)
+    public async Task<BookEntry> AddBook(BookSearchItem bookItem, bool ebook, bool audiobook)
     {
-        var authorName = bookItem.AuthorName; // TODO: For now we just use the first author
+        var authorName = bookItem.AuthorName;
         var authorKey = bookItem.AuthorID;
 
         var author = Authors.FirstOrDefault(a => a.OLID == authorKey) ?? Authors.Add(new AuthorEntry
@@ -57,11 +85,12 @@ public class LibrarrDbContext(DbContextOptions options) : DbContext(options)
 
         var bookEntry = new BookEntry
         {
-            ID = bookItem.ID,
+            OLID = bookItem.ID,
             Title = bookItem.Title,
             Author = author,
             FirstPublishYear = bookItem.PublishYear,
-            WantedTypes = bookEntryType,
+            EBookWanted = ebook,
+            AudiobookWanted = audiobook,
             CoverURL = bookItem.CoverURL
         };
 

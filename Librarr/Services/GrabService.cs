@@ -20,8 +20,8 @@ public class GrabService(
         snackBus.ShowInfo($"Searching for {book.Title}");
 
         var searchTerm = book.Title; // + " by " + book.Author.Name;
-        var ebookWanted = book.WantedTypes.HasFlag(BookEntryType.EBook);
-        var audiobooksWanted = book.WantedTypes.HasFlag(BookEntryType.Audiobook);
+        var ebookWanted = book.EBookWanted;
+        var audiobooksWanted = book.AudiobookWanted;
         var profileSettings = settingsService.GetSettings<ProfileSettingsData>();
 
         var prowlarrResponse = await releaseSearchService.Search(searchTerm, ebookWanted, audiobooksWanted);
@@ -38,7 +38,6 @@ public class GrabService(
                 {
                     Hash = ebookHash
                 };
-                book.EBookStatus = Status.Grabbed;
             }
         }
 
@@ -51,7 +50,6 @@ public class GrabService(
                 {
                     Hash = audiobookHash
                 };
-                book.AudiobookStatus = Status.Grabbed;
             }
         }
 
