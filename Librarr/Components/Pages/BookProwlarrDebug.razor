@@ -1,0 +1,69 @@
+@page "/book/{id:int}"
+@using Librarr.Data
+@using Librarr.Services.Download
+@using Librarr.Services.ReleaseSearch
+
+@inject NavigationManager NavManager
+@inject ProwlarrReleaseSearchService   ReleaseSearchService
+@inject LibrarrDbContext db
+@inject IDownloadService dlService
+
+
+<MudTable Items="@_results" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading"
+          LoadingProgressColor="Color.Info">
+    <HeaderContent>
+        <MudTh>Title</MudTh>
+        <MudTh>Grabs</MudTh>
+        <MudTh>Seeders</MudTh>
+        <MudTh>Indexer</MudTh>
+        <MudTh>Grab</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Title">
+            <MudLink Target="_blank" Href="@context.InfoURL">@context.Title</MudLink>
+        </MudTd>
+        <MudTd DataLabel="Grabs">@context.Downloads</MudTd>
+        <MudTd DataLabel="Seeders">@context.Seeders</MudTd>
+        <MudTd DataLabel="Indexer">/</MudTd>
+        <MudTd DataLabel="Grab">
+            <MudButton OnClick="() =>SendToDownloadClient(context)" Color="Color.Primary">
+                Grab
+            </MudButton>
+        </MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager/>
+    </PagerContent>
+</MudTable>
+
+<MudButton OnClick="GoBack">Back</MudButton>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private List<ReleaseSearchItem> _results = [];
+
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBook(Id);
+    }
+
+    private async Task LoadBook(int id)
+    {
+        var book = await db.Books.FindAsync(id);
+
+        _results = (await ReleaseSearchService.Search(book.Title, true, true)).OrderByDescending(pi => pi.Downloads).ToList();
+
+        _loading = false;
+    }
+
+    private async Task SendToDownloadClient(ReleaseSearchItem rsi)
+    {
+        var (data, hash) = await ReleaseSearchService.DownloadTorrentFile(rsi.DownloadURL);
+        await dlService.AddTorrent(data, hash);
+    }
+
+    private void GoBack() => NavManager.NavigateTo("/books");
+}

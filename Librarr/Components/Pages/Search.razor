@@ -1,0 +1,79 @@
+﻿@page "/search"
+
+@using Librarr.Components.Dialogs
+@using Librarr.Data
+@using Librarr.Services.Metadata
+
+@inject IMetadataService  MetadataService
+@inject LibrarrDbContext db
+@inject IDialogService    DialogService
+@inject ILogger<Search>   Logger
+
+<PageTitle>Book Search</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Search</MudText>
+
+<MudTextField Label="Book Title" Variant="Variant.Filled" InputType="InputType.Search" Clearable="true"
+              HelperText="The title of your book" DebounceInterval="500"
+              T="string" Disabled="@_loading"
+              ValueChanged="OnSearchValueChanged"/>
+
+<MudTable Items="@_searchResults" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading"
+          LoadingProgressColor="Color.Info">
+    <HeaderContent>
+        <MudTh>ID</MudTh>
+        <MudTh>Title</MudTh>
+        <MudTh>Author</MudTh>
+        <MudTh>Published</MudTh>
+        <MudTh>Grab</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="ID">@context.ID</MudTd>
+        <MudTd DataLabel="Title">@context.Title</MudTd>
+        <MudTd DataLabel="Author">@context.AuthorName</MudTd>
+        <MudTd DataLabel="Published">@context.PublishYear</MudTd>
+        <MudTd DataLabel="Grab">
+            <MudFab Color="Color.Secondary" Disabled="@(IsBookAlreadyAdded(context))"
+                    StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
+                    OnClick="() => OnAddClicked(context)"/>
+        </MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager/>
+    </PagerContent>
+</MudTable>
+
+@code {
+    private readonly CancellationTokenSource _cts = new();
+    private bool _searchOnAdd = true;
+
+    private bool _loading;
+
+    private BookSearchItem[] _searchResults = [];
+
+    private async Task OnSearchValueChanged(string searchTerm)
+    {
+        _loading = true;
+
+        //await _cts.CancelAsync();
+
+        _searchResults = await MetadataService.Search(searchTerm, default);
+
+        _loading = false;
+    }
+
+    private async Task OnAddClicked(BookSearchItem book)
+    {
+        await DialogService.ShowAsync<AddBookDialog>("Add book", new DialogParameters<AddBookDialog>
+        {
+            { x => x.Book, book }
+        });
+    }
+
+
+    private bool IsBookAlreadyAdded(BookSearchItem book)
+    {
+        return db.Books.Any(b => b.ID == book.ID);
+    }
+
+}

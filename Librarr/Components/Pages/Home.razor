@@ -1,0 +1,44 @@
+﻿@page "/"
+@using Librarr.Data
+@using Librarr.Model
+@using Microsoft.EntityFrameworkCore
+
+@inject LibrarrDbContext db;
+
+<PageTitle>Home</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">My Library</MudText>
+
+<MudGrid Spacing="5">
+    @foreach (var book in _books)
+    {
+        <MudItem>
+            <MudCard Style="max-width: 200px;">
+                <MudCardMedia Image="@book.CoverURL"Height="175"/>
+                <MudCardContent>
+                    <MudText Typo="Typo.subtitle1" Class="mb-3">
+                        @book.Title
+                    </MudText>
+                    <MudText Typo="Typo.subtitle2">@book.Author.Name</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary"
+                               Href="@($"https://openlibrary.org/{book.ID}")" Target="_blank">More
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    }
+</MudGrid>
+
+
+@code
+{
+    private List<BookEntry> _books = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _books = await db.Books.Include(b => b.Author).ToListAsync();
+    }
+
+}
