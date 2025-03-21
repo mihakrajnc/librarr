@@ -54,7 +54,7 @@
 
     private bool _loading;
 
-    private List<BookEntry> _books = [];
+    private List<Book> _books = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -73,12 +73,12 @@
         }
     }
     
-    private async Task GrabBook(BookEntry book)
+    private async Task GrabBook(Book book)
     {
         await GrabService.SearchForBook(book);
     }
 
-    private async Task RemoveBook(BookEntry book)
+    private async Task RemoveBook(Book book)
     {
         db.Books.Remove(book);
         _books.Remove(book);

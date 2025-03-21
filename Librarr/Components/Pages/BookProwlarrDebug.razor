@@ -1,10 +1,10 @@
-@page "/book/{id:int}"
+@page "/book/debug"
 @using Librarr.Data
 @using Librarr.Services.Download
 @using Librarr.Services.ReleaseSearch
 
 @inject NavigationManager NavManager
-@inject ProwlarrReleaseSearchService   ReleaseSearchService
+@inject IReleaseSearchService   ReleaseSearchService
 @inject LibrarrDbContext db
 @inject IDownloadService dlService
 
@@ -39,7 +39,6 @@
 <MudButton OnClick="GoBack">Back</MudButton>
 
 @code {
-    [Parameter] public int Id { get; set; }
 
     private List<ReleaseSearchItem> _results = [];
 
@@ -47,14 +46,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadBook(Id);
+        await LoadBook();
     }
 
-    private async Task LoadBook(int id)
+    private async Task LoadBook()
     {
-        var book = await db.Books.FindAsync(id);
-
-        _results = (await ReleaseSearchService.Search(book.Title, true, true)).OrderByDescending(pi => pi.Downloads).ToList();
+        _results = (await ReleaseSearchService.Search("harry potter", true, false)).OrderByDescending(pi => pi.Downloads).ToList();
 
         _loading = false;
     }

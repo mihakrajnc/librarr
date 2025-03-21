@@ -4,10 +4,10 @@
 @using Librarr.Services.Metadata
 @using Microsoft.EntityFrameworkCore
 
-@inject IMetadataService  MetadataService
+@inject IMetadataService MetadataService
 @inject LibrarrDbContext db
-@inject IDialogService    DialogService
-@inject ILogger<Search>   Logger
+@inject IDialogService   DialogService
+@inject ILogger<Search>  Logger
 
 <PageTitle>Author Details</PageTitle>
 
@@ -40,9 +40,8 @@
 
 @code {
     [Parameter] public int Id { get; set; }
-    
+
     private readonly CancellationTokenSource _cts = new();
-    private bool _searchOnAdd = true;
 
     private bool _loading;
 
@@ -51,9 +50,7 @@
     protected override async Task OnInitializedAsync()
     {
         _loading = true;
-
-        //await _cts.CancelAsync();
-
+        
         var author = await db.Authors.FirstAsync(a => a.Id == Id);
 
         _searchResults = await MetadataService.FetchAuthorBooks(author.OLID, author.Name);

@@ -1,7 +1,7 @@
 @using Librarr.Data
-@using Librarr.Model
 @using Librarr.Services
 @using Librarr.Services.Metadata
+@using Microsoft.EntityFrameworkCore
 
 @inject ILogger<AddBookDialog> Logger
 @inject GrabService            GrabService
@@ -20,64 +20,31 @@
         <MudButton Color="Color.Primary" OnClick="Close">Ok</MudButton>
     </DialogActions>
 </MudDialog>
-@code {
-    [Parameter] public BookSearchItem Book { get; set; }
 
-    [CascadingParameter]
-    private IMudDialogInstance MudDialog { get; set; }
+@code {
+    [Parameter, EditorRequired] public required BookSearchItem Book { get; set; }
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
     private bool _search = true;
 
     private void Close() => MudDialog.Close(DialogResult.Ok(true));
 
-    private Task ChangeTitleAsync() => MudDialog.SetTitleAsync($"Current time is: {DateTime.Now}");
-
-    private Task ToggleCloseButtonAsync()
-    {
-        
-        var options = MudDialog.Options with
-        {
-            CloseButton = !(MudDialog.Options.CloseButton ?? false)
-        };
-
-        return MudDialog.SetOptionsAsync(options);
-    }
-
-    private Task ToggleFullWidthAsync()
-    {
-        var options = MudDialog.Options with
-        {
-            FullWidth = !(MudDialog.Options.FullWidth ?? true)
-        };
-
-        return MudDialog.SetOptionsAsync(options);
-    }
-
-    private Task ToggleHeaderAsync()
-    {
-        var options = MudDialog.Options with
-        {
-            NoHeader = !(MudDialog.Options.NoHeader ?? false)
-        };
-
-        return MudDialog.SetOptionsAsync(options);
-    }
-
     private async Task OnAddBookClicked(bool ebook, bool audiobook)
     {
-        // if (await IsBookInDatabaseAsync(_book))
-        // {
-        //     Logger.LogInformation($"{book.title} is already in the database.");
-        //     return;
-        // }
-        
         using var scope = ScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetService<LibrarrDbContext>()!;
-        
+
+        if (await db.Books.AnyAsync(b => b.OLID == Book.ID))
+        {
+            Logger.LogInformation($"{Book.Title} is already in the database.");
+            return;
+        }
+
         Logger.LogInformation($"Saving {Book.Title} to DB");
-        
+
         var be = await db.AddBook(Book, ebook, audiobook);
-        
+
         if (_search)
         {
             await GrabService.SearchForBook(be);
@@ -85,4 +52,5 @@
 
         MudDialog.Close(DialogResult.Ok(true));
     }
+
 }

@@ -4,10 +4,10 @@
 @using Librarr.Data
 @using Librarr.Services.Metadata
 
-@inject IMetadataService  MetadataService
-@inject LibrarrDbContext db
-@inject IDialogService    DialogService
-@inject ILogger<Search>   Logger
+@inject IMetadataService MetadataService
+@inject LibrarrDbContext DB
+@inject IDialogService   DialogService
+@inject ILogger<Search>  Logger
 
 <PageTitle>Book Search</PageTitle>
 
@@ -44,8 +44,7 @@
 </MudTable>
 
 @code {
-    private readonly CancellationTokenSource _cts = new();
-    private bool _searchOnAdd = true;
+    private CancellationTokenSource? _searchCts;
 
     private bool _loading;
 
@@ -53,13 +52,22 @@
 
     private async Task OnSearchValueChanged(string searchTerm)
     {
+        _searchCts?.Cancel(); // cancel any ongoing search
+        _searchCts = new CancellationTokenSource();
+
         _loading = true;
-
-        //await _cts.CancelAsync();
-
-        _searchResults = await MetadataService.Search(searchTerm, default);
-
-        _loading = false;
+        try
+        {
+            _searchResults = await MetadataService.Search(searchTerm, _searchCts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            Logger.LogDebug("Search canceled.");
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
     private async Task OnAddClicked(BookSearchItem book)
@@ -70,10 +78,9 @@
         });
     }
 
-
     private bool IsBookAlreadyAdded(BookSearchItem book)
     {
-        return db.Books.Any(b => b.OLID == book.ID);
+        return DB.Books.Any(b => b.OLID == book.ID);
     }
 
 }

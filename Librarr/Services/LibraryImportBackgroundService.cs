@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using Librarr.Data;
 using Librarr.Model;
 using Librarr.Services.Download;
@@ -24,9 +25,9 @@ public class LibraryImportBackgroundService(
             var db = scope.ServiceProvider.GetService<LibrarrDbContext>()!;
 
             await UpdateTorrents(db);
-            
+
             await db.SaveChangesAsync(stoppingToken);
-            
+
             await CheckTorrents(db);
 
             await db.SaveChangesAsync(stoppingToken);
@@ -34,96 +35,105 @@ public class LibraryImportBackgroundService(
             await Task.Delay(POOL_DELAY, stoppingToken);
         }
     }
-    
+
     private async Task UpdateTorrents(LibrarrDbContext db)
     {
         // We only update the status of non-imported torrents
-        var hashes = db.Torrents.Where(t => !t.IsImported).Select(t => t.Hash);
+        var filesToCheck = db.Files
+            .Where(t => t.Status == LibraryFile.DownloadStatus.Downloading ||
+                        t.Status == LibraryFile.DownloadStatus.Pending)
+            .Where(t => t.TorrentHash != null);
+        var hashes = filesToCheck.Select(t => t.TorrentHash).OfType<string>();
 
-        if (!hashes.Any()) return;
+        if (!await hashes.AnyAsync()) return;
 
         logger.LogInformation("Querying QBT for torrent status");
 
-        var torrents = (await dlService.GetTorrents(hashes)).ToDictionary(t => t.Hash);
+        var torrents = (await dlService.GetTorrents(hashes)).ToFrozenDictionary(t => t.Hash);
 
         logger.LogInformation($"QBT responded with {torrents.Count} torrents");
 
-        foreach (var torrentEntry in db.Torrents.Where(t => !t.IsImported))
+        await foreach (var file in filesToCheck.AsAsyncEnumerable())
         {
-            if (torrents.TryGetValue(torrentEntry.Hash, out var torrentItem))
+            if (torrents.TryGetValue(file.TorrentHash!, out var torrentItem))
             {
-                torrentEntry.ContentPath = torrentItem.Path;
+                file.SourcePath = torrentItem.Path;
                 var newStatus = torrentItem.DownloadCompleted
-                    ? TorrentEntry.Status.Downloaded
-                    : TorrentEntry.Status.Downloading;
-                if (torrentEntry.TorrentStatus != newStatus)
+                    ? LibraryFile.DownloadStatus.Downloaded
+                    : LibraryFile.DownloadStatus.Downloading;
+                if (file.Status != newStatus)
                 {
-                    torrentEntry.TorrentStatus = newStatus;
+                    file.Status = newStatus;
                     logger.LogInformation(
-                        $"Updated torrent status to {torrentEntry.TorrentStatus}: {torrentEntry.Hash}");
+                        $"Updated torrent status to {file.Status}: {file.TorrentHash}");
                 }
             }
             else
             {
                 // Torrent was deleted from download client
-                torrentEntry.TorrentStatus = TorrentEntry.Status.Missing;
-                logger.LogWarning($"Missing torrent: {torrentEntry.Hash}");
+                file.Status = LibraryFile.DownloadStatus.Failed; // TODO: Should we have a separate Missing status?
+                logger.LogWarning($"Missing torrent: {file.TorrentHash}");
             }
 
-            db.Torrents.Update(torrentEntry);
+            db.Files.Update(file);
         }
     }
 
     private async Task CheckTorrents(LibrarrDbContext db)
     {
         var profileSettings = settingsService.GetSettings<ProfileSettingsData>();
+        var librarySettings = settingsService.GetSettings<LibrarySettingsData>();
 
-        foreach (var book in db.Books
-                     .Where(b => b.EBookTorrent != null &&
-                                 b.EBookTorrent.TorrentStatus == TorrentEntry.Status.Downloaded &&
-                                 !b.EBookTorrent.IsImported)
-                     .Include(be => be.EBookTorrent)
-                     .Include(be => be.Author))
+        if (librarySettings.LibraryPath == null)
+        {
+            logger.LogError("No library path configured, skipping import");
+            return;
+        }
+
+        await foreach (var libraryFile in db.Files
+                           .Where(b => b.Status == LibraryFile.DownloadStatus.Downloaded)
+                           .Where(lf => lf.Type == LibraryFile.FileType.Ebook)
+                           .Include(lf => lf.Book)
+                           .ThenInclude(b => b.Author)
+                           .AsAsyncEnumerable())
         {
             try
             {
-                TryImportTorrent(book, book.EBookTorrent!, true, profileSettings.EBookProfile, db);
+                TryImportTorrent(libraryFile, profileSettings.EBookProfile, librarySettings, db);
             }
             catch (Exception e)
             {
-                logger.LogError(e, $"Failed to import ebook torrent: {book.Title}");
+                logger.LogError(e, $"Failed to import ebook torrent: {libraryFile.Book.Title}");
             }
         }
 
-        foreach (var book in db.Books
-                     .Where(b => b.AudiobookTorrent != null &&
-                                 b.AudiobookTorrent.TorrentStatus == TorrentEntry.Status.Downloaded &&
-                                 !b.AudiobookTorrent.IsImported)
-                     .Include(be => be.AudiobookTorrent)
-                     .Include(be => be.Author))
+        await foreach (var libraryFile in db.Files
+                           .Where(b => b.Status == LibraryFile.DownloadStatus.Downloaded)
+                           .Where(lf => lf.Type == LibraryFile.FileType.Audiobook)
+                           .Include(lf => lf.Book)
+                           .ThenInclude(b => b.Author)
+                           .AsAsyncEnumerable())
         {
             try
             {
-                TryImportTorrent(book, book.AudiobookTorrent!, false, profileSettings.AudiobookProfile, db);
+                TryImportTorrent(libraryFile, profileSettings.EBookProfile, librarySettings, db);
             }
             catch (Exception e)
             {
-                logger.LogError(e, $"Failed to import ebook torrent: {book.Title}");
+                logger.LogError(e, $"Failed to import ebook torrent: {libraryFile.Book.Title}");
             }
         }
     }
 
-    private void TryImportTorrent(BookEntry book, TorrentEntry torrent, bool isEbook,
-        ProfileSettingsData.Profile profile, LibrarrDbContext db)
+    private void TryImportTorrent(LibraryFile libraryFile,
+        ProfileSettingsData.Profile profile, LibrarySettingsData librarySettings, LibrarrDbContext db)
     {
-        snackBus.ShowInfo($"Importing release: {torrent.Hash} for book: {book.Title}");
-        logger.LogInformation($"Importing torrent {torrent.Hash} for book: {book.Title}");
+        snackBus.ShowInfo($"Importing release: {libraryFile.TorrentHash} for book: {libraryFile.Book.Title}");
+        logger.LogInformation($"Importing release: {libraryFile.TorrentHash} for book: {libraryFile.Book.Title}");
 
-        var contentPath = torrent.ContentPath;
+        var contentPath = libraryFile.SourcePath!;
         var isDirectory = Directory.Exists(contentPath);
         var isFile = File.Exists(contentPath);
-
-        var librarySettings = settingsService.GetSettings<LibrarySettingsData>();
 
         if (!isDirectory && !isFile)
         {
@@ -163,52 +173,39 @@ public class LibraryImportBackgroundService(
         if (sourceFormat == null || sourceFiles == null)
         {
             logger.LogError(
-                $"Could not find file for book: {book.Title} with format: {sourceFormat}, source: {contentPath}");
-            throw new Exception($"Could not find file for book: {book.Title}");
+                $"Could not find file for book: {libraryFile.Book.Title} with format: {sourceFormat}, source: {contentPath}");
+            throw new Exception(
+                $"Could not find file for book: {libraryFile.Book.Title} with format: {sourceFormat}, source: {contentPath}");
         }
 
         logger.LogInformation($"Using source files: {string.Join(',', sourceFiles)}");
 
         // Import book
         // TODO: Support hardlinks
-        var authorFolderName = FileUtils.SanitizePathName(book.Author.Name);
-        var bookFolderName = FileUtils.SanitizePathName(book.Title);
+        var authorFolderName = FileUtils.SanitizePathName(libraryFile.Book.Author.Name);
+        var bookFolderName = FileUtils.SanitizePathName(libraryFile.Book.Title);
 
         var destinationDir =
-            Directory.CreateDirectory(Path.Combine(librarySettings.LibraryPath, authorFolderName,
+            Directory.CreateDirectory(Path.Combine(librarySettings.LibraryPath!, authorFolderName,
                 bookFolderName)); // TODO: Verify?
+        var destinationFiles = new List<string>(sourceFiles.Length);
 
         foreach (var sourceFile in sourceFiles)
         {
             var destinationFile = Path.Combine(destinationDir.FullName, Path.GetFileName(sourceFile));
             File.Copy(sourceFile, destinationFile, true);
+            destinationFiles.Add(destinationFile);
         }
 
-        // Add the file to the db and book entry
-        if (isEbook) // TODO: Clean this up
-        {
-            book.EBookFile = new FileEntry
-            {
-                Paths = sourceFiles,
-                Format = sourceFormat,
-            };
-        }
-        else
-        {
-            book.AudiobookFile = new FileEntry
-            {
-                Paths = sourceFiles,
-                Format = sourceFormat,
-            };
-        }
+        libraryFile.DestinationFiles = destinationFiles;
+        libraryFile.Format = sourceFormat;
 
         // Mark torrent as imported
-        torrent.IsImported = true;
+        libraryFile.Status = LibraryFile.DownloadStatus.Imported;
 
-        db.Books.Update(book);
-        db.Torrents.Update(torrent);
+        db.Files.Update(libraryFile);
 
-        snackBus.ShowInfo($"Imported book: {book.Title} to {destinationDir.FullName}");
-        logger.LogInformation($"Imported book: {book.Title} to {destinationDir.FullName}");
+        snackBus.ShowInfo($"Imported book: {libraryFile.Book.Title} to {destinationDir.FullName}");
+        logger.LogInformation($"Imported book: {libraryFile.Book.Title} to {destinationDir.FullName}");
     }
 }

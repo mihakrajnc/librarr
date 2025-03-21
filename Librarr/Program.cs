@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using MudBlazor.Services;
 using Librarr.Components;
 using Librarr.Components.Pages.Settings;
@@ -33,12 +34,9 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 // Database
-builder.Services.AddSqlite<LibrarrDbContext>("Data Source=db/librarr.sqlite", null, options =>
-{
-    options.LogTo(Console.WriteLine, LogLevel.Warning);
-});
+builder.Services.AddSqlite<LibrarrDbContext>("Data Source=db/librarr.sqlite", null,
+    options => { options.LogTo(Console.WriteLine, LogLevel.Warning); });
 
-builder.Services.AddHostedService<DownloadStatusBackgroundService>();
 builder.Services.AddHostedService<LibraryImportBackgroundService>();
 
 builder.Services.AddSingleton<SettingsService>();

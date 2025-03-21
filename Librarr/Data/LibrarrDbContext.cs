@@ -6,62 +6,61 @@ namespace Librarr.Data;
 
 public class LibrarrDbContext(DbContextOptions options) : DbContext(options)
 {
-    public DbSet<BookEntry>    Books    { get; set; }
-    public DbSet<AuthorEntry>  Authors  { get; set; }
-    public DbSet<FileEntry>    Files    { get; set; }
-    public DbSet<TorrentEntry> Torrents { get; set; }
+    public DbSet<Book>    Books    { get; set; }
+    public DbSet<Author>  Authors  { get; set; }
+    public DbSet<LibraryFile>    Files    { get; set; }
+    // public DbSet<Torrent> Torrents { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Torrent entries
+        // Configure Book entity
+        modelBuilder.Entity<Book>(entity =>
         {
-            // Shadow property for EBookOfId
-            modelBuilder.Entity<TorrentEntry>()
-                .Property<int?>("EBookOfId");
+            entity.HasKey(b => b.Id);
+            entity.Property(b => b.OLID).HasMaxLength(20).IsRequired();
+            entity.Property(b => b.Title).HasMaxLength(255).IsRequired();
+            entity.Property(b => b.FirstPublishYear).IsRequired();
+            entity.Property(b => b.CoverURL).HasMaxLength(255).IsRequired();
+            entity.Property(b => b.EBookWanted);
+            entity.Property(b => b.AudiobookWanted);
 
-            // Relationship for EBookTorrent
-            modelBuilder.Entity<BookEntry>()
-                .HasOne(b => b.EBookTorrent)
-                .WithOne() // no navigation in TorrentEntry
-                .HasForeignKey<TorrentEntry>("EBookOfId")
-                .OnDelete(DeleteBehavior.Cascade);
+            // Use a shadow property "AuthorId" as the FK for the required Author navigation
+            entity.HasOne(b => b.Author)
+                .WithMany(a => a.Books)
+                .HasForeignKey("AuthorId")
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);;
+        });
 
-            // Shadow property for AudiobookOfId
-            modelBuilder.Entity<TorrentEntry>()
-                .Property<int?>("AudiobookOfId");
-
-            // Relationship for AudiobookTorrent
-            modelBuilder.Entity<BookEntry>()
-                .HasOne(b => b.AudiobookTorrent)
-                .WithOne()
-                .HasForeignKey<TorrentEntry>("AudiobookOfId")
-                .OnDelete(DeleteBehavior.Cascade);
-        }
-
-        // File entries
+        // Configure Author entity
+        modelBuilder.Entity<Author>(entity =>
         {
-            // Shadow property for EBookOfId
-            modelBuilder.Entity<FileEntry>()
-                .Property<int?>("EBookOfId");
+            entity.HasKey(a => a.Id);
+            entity.Property(a => a.OLID).HasMaxLength(20).IsRequired();
+            entity.Property(a => a.Name).HasMaxLength(127).IsRequired();
 
-            // Relationship for EBookFile
-            modelBuilder.Entity<BookEntry>()
-                .HasOne(b => b.EBookFile)
-                .WithOne() // no navigation in TorrentEntry
-                .HasForeignKey<FileEntry>("EBookOfId")
-                .OnDelete(DeleteBehavior.Cascade);
+            // Unique index on OLID (equivalent to [Index(nameof(OLID), IsUnique = true)])
+            entity.HasIndex(a => a.OLID).IsUnique();
+        });
 
-            // Shadow property for AudiobookOfId
-            modelBuilder.Entity<FileEntry>()
-                .Property<int?>("AudiobookOfId");
+        // Configure LibraryFile entity
+        modelBuilder.Entity<LibraryFile>(entity =>
+        {
+            entity.HasKey(f => f.Id);
+            entity.Property(f => f.Type).IsRequired();
+            entity.Property(f => f.Status).IsRequired();
+            entity.Property(f => f.DestinationFiles).HasMaxLength(255);
+            entity.Property(f=> f.SourcePath).HasMaxLength(255);
+            entity.Property(f=> f.TorrentHash).HasMaxLength(255);
+            entity.Property(f=> f.Format).HasMaxLength(4);
 
-            // Relationship for AudiobookFile
-            modelBuilder.Entity<BookEntry>()
-                .HasOne(b => b.AudiobookFile)
-                .WithOne()
-                .HasForeignKey<FileEntry>("AudiobookOfId")
-                .OnDelete(DeleteBehavior.Cascade);
-        }
+            // Use a shadow property "BookId" for the relationship with Book.
+            entity.HasOne(f => f.Book)
+                .WithMany(b => b.Files)
+                .HasForeignKey("BookId")
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);;
+        });
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
@@ -72,18 +71,18 @@ public class LibrarrDbContext(DbContextOptions options) : DbContext(options)
     }
 
     // TODO: Should this be here?
-    public async Task<BookEntry> AddBook(BookSearchItem bookItem, bool ebook, bool audiobook)
+    public async Task<Book> AddBook(BookSearchItem bookItem, bool ebook, bool audiobook)
     {
         var authorName = bookItem.AuthorName;
         var authorKey = bookItem.AuthorID;
 
-        var author = Authors.FirstOrDefault(a => a.OLID == authorKey) ?? Authors.Add(new AuthorEntry
+        var author = Authors.FirstOrDefault(a => a.OLID == authorKey) ?? Authors.Add(new Author
         {
             OLID = authorKey,
             Name = authorName
         }).Entity;
 
-        var bookEntry = new BookEntry
+        var bookEntry = new Book
         {
             OLID = bookItem.ID,
             Title = bookItem.Title,

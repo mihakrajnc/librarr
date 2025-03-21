@@ -14,7 +14,7 @@ public class GrabService(
     IServiceScopeFactory scopeFactory,
     SnackMessageBus snackBus)
 {
-    public async Task SearchForBook(BookEntry book)
+    public async Task SearchForBook(Book book)
     {
         logger.LogInformation($"Searching for {book.Title}");
         snackBus.ShowInfo($"Searching for {book.Title}");
@@ -31,25 +31,31 @@ public class GrabService(
 
         if (ebookWanted)
         {
-            var ebookHash = await PickAndGrabRelease(book, parsedItems, profileSettings.EBookProfile);
-            if (ebookHash != null)
+            var hash = await PickAndGrabRelease(book, parsedItems, profileSettings.EBookProfile);
+            if (hash != null)
             {
-                book.EBookTorrent = new TorrentEntry
+                book.Files.Add(new LibraryFile
                 {
-                    Hash = ebookHash
-                };
+                    Book = book,
+                    Status = LibraryFile.DownloadStatus.Pending,
+                    TorrentHash = hash,
+                    Type = LibraryFile.FileType.Ebook
+                });
             }
         }
 
         if (audiobooksWanted)
         {
-            var audiobookHash = await PickAndGrabRelease(book, parsedItems, profileSettings.AudiobookProfile);
-            if (audiobookHash != null)
+            var hash = await PickAndGrabRelease(book, parsedItems, profileSettings.AudiobookProfile);
+            if (hash != null)
             {
-                book.AudiobookTorrent = new TorrentEntry
+                book.Files.Add(new LibraryFile
                 {
-                    Hash = audiobookHash
-                };
+                    Book = book,
+                    Status = LibraryFile.DownloadStatus.Pending,
+                    TorrentHash = hash,
+                    Type = LibraryFile.FileType.Audiobook
+                });
             }
         }
 
@@ -61,7 +67,7 @@ public class GrabService(
         await db.SaveChangesAsync();
     }
 
-    private async Task<string?> PickAndGrabRelease(BookEntry book, List<ParsedItem> parsedItems,
+    private async Task<string?> PickAndGrabRelease(Book book, List<ParsedItem> parsedItems,
         ProfileSettingsData.Profile profile)
     {
         var formatsSet = profile.Formats.Where(f => f.Enabled).Select(f => f.Name).ToHashSet();
@@ -123,15 +129,18 @@ public class GrabService(
             var firstBracket = rsi.Title.IndexOf('[');
             var secondBracket = rsi.Title.IndexOf(']', firstBracket + 1);
 
-            var tags = rsi.Title.Substring(firstBracket + 1,
+            var tagsSplit = rsi.Title.Substring(firstBracket + 1,
                     secondBracket - firstBracket - 1)
                 .Split(" / ");
+            
+            var languageTag = tagsSplit[0];
+            var formatTags = tagsSplit[1].Split(' ').ToHashSet();
 
             return new ParsedItem
             {
                 Title = rsi.Title,
-                Language = tags[0],
-                Formats = [..tags.Skip(1)],
+                Language = languageTag,
+                Formats = formatTags,
                 Seeders = rsi.Seeders,
                 Leechers = rsi.Leechers,
                 DownloadURL = rsi.DownloadURL,
