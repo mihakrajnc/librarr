@@ -49,13 +49,32 @@ builder.Services.AddHttpClient<IMetadataService, OpenLibraryMetadataService>(cli
     client.BaseAddress = new Uri("https://openlibrary.org");
 });
 
-builder.Services.AddHttpClient<IReleaseSearchService, ProwlarrReleaseSearchService>((sp, client) =>
-{
-    var settings = sp.GetRequiredService<SettingsService>().GetSettings<ProwlarrSettingsData>();
+// builder.Services.AddHttpClient<IReleaseSearchService, ProwlarrReleaseSearchService>((sp, client) =>
+// {
+//     var settings = sp.GetRequiredService<SettingsService>().GetSettings<ProwlarrSettingsData>();
+//
+//     client.BaseAddress = new Uri($"{(settings.UseSSL ? "https" : "http")}://{settings.Host}:{settings.Port}");
+//     client.DefaultRequestHeaders.Add("X-Api-Key", settings.APIKey);
+// });
 
-    client.BaseAddress = new Uri($"{(settings.UseSSL ? "https" : "http")}://{settings.Host}:{settings.Port}");
-    client.DefaultRequestHeaders.Add("X-Api-Key", settings.APIKey);
+builder.Services.AddHttpClient<IReleaseSearchService, MaMReleaseSearchService>((sp, client) =>
+{
+    var settings = sp.GetRequiredService<SettingsService>().GetSettings<MaMSettingsData>();
+
+    client.BaseAddress = new Uri(settings.BaseURL);
+    client.DefaultRequestHeaders.Add("Cookie", $"mam_id={settings.MaMID}");
+    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+    client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
+    client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("deflate"));
+    client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("br"));
+    client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Librarr", "0.1"));
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    AutomaticDecompression = System.Net.DecompressionMethods.GZip |
+                             System.Net.DecompressionMethods.Deflate |
+                             System.Net.DecompressionMethods.Brotli
 });
+
 builder.Services.AddHttpClient<IDownloadService, QBTDownloadService>((sp, client) =>
 {
     var settings = sp.GetRequiredService<SettingsService>().GetSettings<QBTSettingsData>();

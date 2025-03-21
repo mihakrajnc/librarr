@@ -61,7 +61,7 @@ public class QBTDownloadService(HttpClient httpClient, SettingsService ss, ILogg
             logger.LogError($"Test failed: {response.StatusCode}");
             return false;
         }
-        
+
         logger.LogError($"Test succeeded, response: {await response.Content.ReadAsStringAsync()}");
         return true;
     }

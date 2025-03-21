@@ -15,8 +15,7 @@
 
 <MudTextField Label="Book Title" Variant="Variant.Filled" InputType="InputType.Search" Clearable="true"
               HelperText="The title of your book" DebounceInterval="500"
-              T="string" Disabled="@_loading"
-              ValueChanged="OnSearchValueChanged"/>
+              T="string" ValueChanged="OnSearchValueChanged"/>
 
 <MudTable Items="@_searchResults" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading"
           LoadingProgressColor="Color.Info">

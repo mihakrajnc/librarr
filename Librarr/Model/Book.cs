@@ -11,6 +11,6 @@ public class Book
     public required bool   EBookWanted      { get; set; }
     public required bool   AudiobookWanted  { get; set; }
 
-    public required Author       Author { get; init; }
+    public required Author            Author { get; init; }
     public          List<LibraryFile> Files  { get; init; } = [];
 }

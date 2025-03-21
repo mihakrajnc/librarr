@@ -1,0 +1,54 @@
+@using Librarr.Model
+@using Librarr.Services
+@using Librarr.Services.ReleaseSearch
+
+@inject IReleaseSearchService ReleaseSearchService
+@inject GrabService           GrabService
+
+<MudTable Items="@_results" Hover="true" Loading="@_loading"
+          LoadingProgressColor="Color.Info">
+    <HeaderContent>
+        <MudTh>Title</MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<ReleaseSearchItem, object>(x=>x.Downloads)">Downloads</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<ReleaseSearchItem, object>(x=>x.Seeders)">Seeders</MudTableSortLabel></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Title">
+            <MudLink Target="_blank" Href="@context.InfoURL">@context.Title</MudLink>
+        </MudTd>
+        <MudTd DataLabel="Downloads">@context.Downloads</MudTd>
+        <MudTd DataLabel="Seeders">@context.Seeders</MudTd>
+        <MudTd>
+            <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudDownload"
+                    OnClick="() => OnGrabClicked(context)" Size="Size.Small"/>
+        </MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager/>
+    </PagerContent>
+</MudTable>
+
+@code {
+    [Parameter, EditorRequired] public required Book Book { get; set; }
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private bool _loading = true;
+    private ReleaseSearchItem[] _results = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        _results = await ReleaseSearchService.Search(Book.Title, Book.EBookWanted, Book.AudiobookWanted);
+        _loading = false;
+    }
+
+    private void Close() => MudDialog.Close(DialogResult.Ok(true));
+
+    private async Task OnGrabClicked(ReleaseSearchItem searchItem)
+    {
+        await GrabService.GrabItem(searchItem);
+        Close();
+    }
+
+}

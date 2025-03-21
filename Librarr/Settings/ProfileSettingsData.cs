@@ -1,3 +1,5 @@
+using Librarr.Model;
+
 namespace Librarr.Settings;
 
 public class ProfileSettingsData
@@ -21,6 +23,18 @@ public class ProfileSettingsData
             new Profile.Format { Name = "MOBI", Order = 3, Enabled = true },
         ]
     };
+    
+    public string Language { get; set; } = "ENG";
+
+    public Profile GetProfile(LibraryFile.FileType fileType)
+    {
+        return fileType switch
+        {
+            LibraryFile.FileType.Audiobook => AudiobookProfile,
+            LibraryFile.FileType.Ebook => EBookProfile,
+            _ => throw new ArgumentOutOfRangeException(nameof(fileType), fileType, null)
+        };
+    }
 
     public class Profile
     {

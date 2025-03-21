@@ -9,4 +9,8 @@ public class MaMSettingsData
     
     [Required(ErrorMessage = "MaM ID is required")]
     public string MaMID { get; set; } = string.Empty;
+    
+    public bool AllowVIP { get; set; } = false;
+
+    public int MinSeeders { get; set; } = 5;
 }

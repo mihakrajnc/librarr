@@ -92,31 +92,13 @@ public class LibraryImportBackgroundService(
 
         await foreach (var libraryFile in db.Files
                            .Where(b => b.Status == LibraryFile.DownloadStatus.Downloaded)
-                           .Where(lf => lf.Type == LibraryFile.FileType.Ebook)
                            .Include(lf => lf.Book)
                            .ThenInclude(b => b.Author)
                            .AsAsyncEnumerable())
         {
             try
             {
-                TryImportTorrent(libraryFile, profileSettings.EBookProfile, librarySettings, db);
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, $"Failed to import ebook torrent: {libraryFile.Book.Title}");
-            }
-        }
-
-        await foreach (var libraryFile in db.Files
-                           .Where(b => b.Status == LibraryFile.DownloadStatus.Downloaded)
-                           .Where(lf => lf.Type == LibraryFile.FileType.Audiobook)
-                           .Include(lf => lf.Book)
-                           .ThenInclude(b => b.Author)
-                           .AsAsyncEnumerable())
-        {
-            try
-            {
-                TryImportTorrent(libraryFile, profileSettings.EBookProfile, librarySettings, db);
+                TryImportTorrent(libraryFile, profileSettings.GetProfile(libraryFile.Type), librarySettings, db);
             }
             catch (Exception e)
             {

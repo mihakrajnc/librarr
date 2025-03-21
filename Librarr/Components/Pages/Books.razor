@@ -1,13 +1,15 @@
 ﻿@page "/books"
+@using Librarr.Components.Dialogs
 @using Librarr.Data
 @using Librarr.Model
 @using Librarr.Services
 @using Microsoft.EntityFrameworkCore
 
 
-@inject ILogger<Search>   Logger;
+@inject ILogger<Search>  Logger;
 @inject LibrarrDbContext db
-@inject GrabService       GrabService
+@inject GrabService      GrabService
+@inject IDialogService   DialogService
 
 <PageTitle>Books</PageTitle>
 
@@ -20,8 +22,8 @@
         <MudTh>Author</MudTh>
         <MudTh>Published</MudTh>
         <MudTh>Cover</MudTh>
-        <MudTh>Find</MudTh>
-        <MudTh>Remove</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Actions</MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="OLID">@context.OLID</MudTd>
@@ -34,15 +36,36 @@
                       Alt="Icon" Elevation="0"
                       Class="rounded-lg"/>
         </MudTd>
-        <MudTd DataLabel="Find">
-            <MudButton OnClick="() => GrabBook(context)" Color="Color.Primary">
-                Grab
-            </MudButton>
+        <MudTd DataLabel="Status">
+            @switch (GetLowestStatus(context))
+            {
+                case LibraryFile.DownloadStatus.Pending:
+                    <MudChip T="string" Variant="Variant.Text" Color="Color.Warning">Pending</MudChip>
+                    break;
+                case LibraryFile.DownloadStatus.Downloading:
+                    <MudChip T="string" Variant="Variant.Text" Color="Color.Info">Downloading</MudChip>
+                    break;
+                case LibraryFile.DownloadStatus.Downloaded:
+                    <MudChip T="string" Variant="Variant.Text" Color="Color.Success">Downloaded</MudChip>
+                    break;
+                case LibraryFile.DownloadStatus.Imported:
+                    <MudChip T="string" Variant="Variant.Text" Color="Color.Primary">Imported</MudChip>
+                    break;
+                case LibraryFile.DownloadStatus.Failed:
+                    <MudChip T="string" Variant="Variant.Text" Color="Color.Error">Failed</MudChip>
+                    break;
+                default:
+                    <MudChip T="string" Variant="Variant.Text" Color="Color.Default">Unknown</MudChip>
+                    break;
+            }
         </MudTd>
-        <MudTd DataLabel="Remove">
-            <MudButton OnClick="() => RemoveBook(context)" Color="Color.Primary">
-                X
-            </MudButton>
+        <MudTd DataLabel="Actions">
+            <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search"
+                    OnClick="() => SearchAutomatic(context)" Size="Size.Small"/>
+            <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonSearch"
+                    OnClick="() => SearchManual(context)" Size="Size.Small"/>
+            <MudFab Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="() => RemoveBook(context)"
+                    Size="Size.Small"/>
         </MudTd>
     </RowTemplate>
     <PagerContent>
@@ -61,7 +84,10 @@
         _loading = true;
         try
         {
-            _books = await db.Books.Include(b => b.Author).ToListAsync();
+            _books = await db.Books
+                .Include(b => b.Author)
+                .Include(b => b.Files)
+                .ToListAsync();
         }
         catch (Exception ex)
         {
@@ -72,10 +98,38 @@
             _loading = false;
         }
     }
-    
-    private async Task GrabBook(Book book)
+
+    private static LibraryFile.DownloadStatus GetLowestStatus(Book book)
+    {
+        if (book.Files.Count == 0)
+        {
+            return LibraryFile.DownloadStatus.Pending;
+        }
+
+        var status = LibraryFile.DownloadStatus.Failed;
+
+        foreach (var file in book.Files)
+        {
+            if (file.Status < status)
+            {
+                status = file.Status;
+            }
+        }
+
+        return status;
+    }
+
+    private async Task SearchAutomatic(Book book)
     {
         await GrabService.SearchForBook(book);
+    }
+
+    private async Task SearchManual(Book book)
+    {
+        await DialogService.ShowAsync<ManualSearchDialog>("Pick release", new DialogParameters<ManualSearchDialog>
+        {
+            { x => x.Book, book }
+        });
     }
 
     private async Task RemoveBook(Book book)

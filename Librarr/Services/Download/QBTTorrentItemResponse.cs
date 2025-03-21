@@ -83,6 +83,7 @@ public record QBTTorrentItemResponse(
         StalledDl, //Torrent is being downloaded, but no connection were made
         CheckingDl, //Same as checkingUP, but torrent has NOT finished downloading
         ForcedDl, //Torrent is forced to downloading to ignore queue limit
+        StoppedDL, // Torrent is still downloading and is stopped
         CheckingResumeData, //Checking resume data on qBt startup
         Moving, //Torrent is moving to another location
         Unknown, //Unknown status
