@@ -1,8 +1,10 @@
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 USER $APP_UID
 WORKDIR /app
-EXPOSE 8080
-EXPOSE 8081
+
+# Ports
+EXPOSE 9797
+ENV HTTP_PORTS=9797
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
@@ -24,5 +26,8 @@ RUN dotnet publish "Librarr.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:U
 
 FROM base AS final
 WORKDIR /app
+
+ENV LIBRARR_CONFIG_PATH=/config
+
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "Librarr.dll"]

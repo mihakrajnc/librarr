@@ -8,10 +8,17 @@ using Librarr.Services.Download;
 using Librarr.Services.Metadata;
 using Librarr.Services.ReleaseSearch;
 using Librarr.Settings;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var logger = builder.Logging
+    .Services
+    .BuildServiceProvider()
+    .GetRequiredService<ILoggerFactory>()
+    .CreateLogger("Startup");
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
@@ -33,13 +40,25 @@ builder.Services.AddMudServices(config =>
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+
+// Persistant data dir
+var configDir = Environment.GetEnvironmentVariable("LIBRARR_CONFIG_PATH") ??
+                 Path.Combine(AppContext.BaseDirectory, "config");
+var settingsDir = Path.Combine(configDir, "settings");
+Directory.CreateDirectory(configDir);
+Directory.CreateDirectory(settingsDir);
+
 // Database
-builder.Services.AddSqlite<LibrarrDbContext>("Data Source=db/librarr.sqlite", null,
+var dbFile = Path.Combine(configDir, "librarr.sqlite");
+builder.Services.AddSqlite<LibrarrDbContext>($"Data Source={dbFile}", null,
     options => { options.LogTo(Console.WriteLine, LogLevel.Warning); });
 
 builder.Services.AddHostedService<LibraryImportBackgroundService>();
 
-builder.Services.AddSingleton<SettingsService>();
+builder.Services.AddSingleton<SettingsService>(sp => new SettingsService(
+    sp.GetRequiredService<ILogger<SettingsService>>(),
+    settingsDir
+));
 builder.Services.AddSingleton<GrabService>();
 builder.Services.AddSingleton<SnackMessageBus>();
 
@@ -93,7 +112,6 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 
 app.UseAntiforgery();
 

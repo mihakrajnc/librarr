@@ -86,7 +86,7 @@ public class LibraryImportBackgroundService(
 
         if (librarySettings.LibraryPath == null)
         {
-            logger.LogError("No library path configured, skipping import");
+            logger.LogInformation("No library path configured, skipping import");
             return;
         }
 
