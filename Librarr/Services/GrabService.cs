@@ -112,7 +112,7 @@ public class GrabService(
         if (selectedItem != null)
         {
             logger.LogInformation($"Selected release: {selectedItem.Title}");
-            snackBus.ShowInfo($"Selected release {selectedItem.Title}");
+            // snackBus.ShowInfo($"Selected release {selectedItem.Title}");
 
             var hash = await GrabItem(selectedItem);
 
@@ -122,12 +122,12 @@ public class GrabService(
                 return null;
             }
 
-            snackBus.ShowInfo($"Release grabbed: {selectedItem.Title}");
+            // snackBus.ShowInfo($"Release grabbed: {selectedItem.Title}");
 
             return hash;
         }
 
-        snackBus.ShowInfo($"No matches found for: {book.Title}");
+        // snackBus.ShowInfo($"No matches found for: {book.Title}");
 
         return null;
     }

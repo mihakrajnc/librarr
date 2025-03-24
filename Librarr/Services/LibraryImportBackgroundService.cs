@@ -110,7 +110,7 @@ public class LibraryImportBackgroundService(
     private void TryImportTorrent(LibraryFile libraryFile,
         ProfileSettingsData.Profile profile, LibrarySettingsData librarySettings, LibrarrDbContext db)
     {
-        snackBus.ShowInfo($"Importing release: {libraryFile.TorrentHash} for book: {libraryFile.Book.Title}");
+        // snackBus.ShowInfo($"Importing release: {libraryFile.TorrentHash} for book: {libraryFile.Book.Title}");
         logger.LogInformation($"Importing release: {libraryFile.TorrentHash} for book: {libraryFile.Book.Title}");
 
         var contentPath = libraryFile.SourcePath!;

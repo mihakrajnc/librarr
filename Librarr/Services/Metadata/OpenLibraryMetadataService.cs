@@ -5,6 +5,7 @@ public class OpenLibraryMetadataService(HttpClient httpClient, ILogger<OpenLibra
 {
     private const string SEARCH_API_URL = "/search.json?q={0}";
     private const string AUTHOR_API_URL = "/authors/{0}/works.json";
+    private const string WORK_API_URL = "/works/{0}.json";
 
     public async Task<BookSearchItem[]> Search(string query, CancellationToken ct = default)
     {
@@ -31,7 +32,8 @@ public class OpenLibraryMetadataService(HttpClient httpClient, ILogger<OpenLibra
             .ToArray();
     }
 
-    public async Task<BookSearchItem[]> FetchAuthorBooks(string authorKey, string authorName, CancellationToken ct = default)
+    public async Task<BookSearchItem[]> FetchAuthorBooks(string authorKey, string authorName,
+        CancellationToken ct = default)
     {
         var uri = string.Format(AUTHOR_API_URL, authorKey);
 
@@ -56,6 +58,25 @@ public class OpenLibraryMetadataService(HttpClient httpClient, ILogger<OpenLibra
             .ToArray();
     }
 
+    public async Task<BookMetadata> FetchBookMetadata(string id, CancellationToken ct = default)
+    {
+        var uri = string.Format(WORK_API_URL, id);
+
+        logger.LogInformation($"Searching for metadata for book: {id}");
+
+        var response = await httpClient.GetAsync(uri, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogError($"Failed to find metadata: {response.StatusCode}");
+            throw new Exception($"Failed to find metadata: {response.StatusCode}");
+        }
+
+        var responseData = await response.Content.ReadFromJsonAsync<OpenLibraryWorkResponse>(ct);
+
+        return new BookMetadata(responseData?.description.value ?? "Missing description"); // TODO: Maybe do this better
+    }
+
     private BookSearchItem? ParseBookSearchItem(OpenLibrarySearchResponse.Document doc)
     {
         try
@@ -75,8 +96,9 @@ public class OpenLibraryMetadataService(HttpClient httpClient, ILogger<OpenLibra
             return null;
         }
     }
-    
-    private BookSearchItem? ParseBookSearchItem(OpenLibraryAuthorResponse.Entry doc, string authorKey, string authorName)
+
+    private BookSearchItem? ParseBookSearchItem(OpenLibraryAuthorResponse.Entry doc, string authorKey,
+        string authorName)
     {
         try
         {
@@ -111,41 +133,8 @@ public class OpenLibraryMetadataService(HttpClient httpClient, ILogger<OpenLibra
             int first_publish_year
         );
     }
-    
-    public record Author(
-        Author author,
-        Type type
-    );
 
-    public record Author2(
-        string key
-    );
-
-    public record Created(
-        string type,
-        DateTime value
-    );
-
-    public record Excerpt(
-        Author author,
-        string comment,
-        string excerpt
-    );
-
-    public record LastModified(
-        string type,
-        DateTime value
-    );
-
-    public record Link(
-        string url,
-        string title,
-        Type type,
-        string self,
-        string author,
-        string next
-    );
-
+    [Serializable]
     public record OpenLibraryAuthorResponse(
         int size,
         OpenLibraryAuthorResponse.Entry[] entries
@@ -159,20 +148,22 @@ public class OpenLibraryMetadataService(HttpClient httpClient, ILogger<OpenLibra
             string[] subjects,
             string[] subject_people,
             string key,
-            Author[] authors,
             string[] subject_times,
             Type type,
             int latest_revision,
             int revision,
-            Created created,
-            LastModified last_modified,
-            Link[] links,
-            Excerpt[] excerpts,
             string? first_publish_date
         );
     }
 
-    public record Type(
-        string key
-    );
+    [Serializable]
+    public record OpenLibraryWorkResponse(
+        OpenLibraryWorkResponse.Description description
+    )
+    {
+        public record Description(
+            string type,
+            string value
+        );
+    }
 }

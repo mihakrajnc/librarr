@@ -6,18 +6,34 @@
 @inject ILogger<AddBookDialog> Logger
 @inject GrabService            GrabService
 @inject IServiceScopeFactory   ScopeFactory
+@inject IMetadataService MetadataService;
 
 <MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@Book.Title</MudText>
+        <MudText  Typo="Typo.subtitle1">@Book.AuthorName</MudText>
+    </TitleContent>
     <DialogContent>
-        <div class="d-flex flex-column py-1">
-            <MudCheckBox @bind-Value="_search" Label="Search"/>
-            <MudButton OnClick="() => OnAddBookClicked(true, false)">Add Ebook</MudButton>
-            <MudButton OnClick="() => OnAddBookClicked(false, true)">Add Audiobook</MudButton>
-            <MudButton OnClick="() => OnAddBookClicked(true, true)">Add both</MudButton>
-        </div>
+
+        @if (_metadata == null)
+        {
+            <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+        }
+        else
+        {
+            <MudText Typo="Typo.body1">@_metadata.Description</MudText>
+        }
+
+        <MudRadioGroup @bind-Value="_wantedType">
+            <MudRadio Value="1" Color="Color.Primary" Size="Size.Medium">EBook</MudRadio>
+            <MudRadio Value="2" Color="Color.Primary" Size="Size.Medium">Audiobook</MudRadio>
+            <MudRadio Value="3" Color="Color.Secondary" Size="Size.Large">EBook + Audiobook</MudRadio>
+        </MudRadioGroup>
     </DialogContent>
     <DialogActions>
-        <MudButton Color="Color.Primary" OnClick="Close">Ok</MudButton>
+        <MudCheckBox @bind-Value="_search">Search on Add</MudCheckBox>
+        
+        <MudButton Color="Color.Primary" OnClick="OnAddBookClicked">Add book</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -27,10 +43,16 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
     private bool _search = true;
+    private int _wantedType = 1;
 
-    private void Close() => MudDialog.Close(DialogResult.Ok(true));
+    private BookMetadata? _metadata = null;
 
-    private async Task OnAddBookClicked(bool ebook, bool audiobook)
+    protected override async Task OnInitializedAsync()
+    {
+        _metadata = await MetadataService.FetchBookMetadata(Book.ID);
+    }
+
+    private async Task OnAddBookClicked()
     {
         using var scope = ScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetService<LibrarrDbContext>()!;
@@ -38,19 +60,21 @@
         if (await db.Books.AnyAsync(b => b.OLID == Book.ID))
         {
             Logger.LogInformation($"{Book.Title} is already in the database.");
+            MudDialog.Close();
             return;
         }
 
-        Logger.LogInformation($"Saving {Book.Title} to DB");
+        var ebookWanted = _wantedType is 1 or 3;
+        var audiobookWanted = _wantedType is 2 or 3;
 
-        var be = await db.AddBook(Book, ebook, audiobook);
+        var be = await db.AddBook(Book, ebookWanted, audiobookWanted);
 
         if (_search)
         {
             await GrabService.SearchForBook(be);
         }
 
-        MudDialog.Close(DialogResult.Ok(true));
+        MudDialog.Close();
     }
 
 }
