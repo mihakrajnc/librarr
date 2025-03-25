@@ -1,86 +1,25 @@
-using System.Collections.Frozen;
 using Librarr.Data;
 using Librarr.Model;
-using Librarr.Services.Download;
 using Librarr.Settings;
 using Librarr.Utils;
 using Microsoft.EntityFrameworkCore;
 
-namespace Librarr.Services;
+namespace Librarr.Services.Jobs;
 
-public class LibraryImportBackgroundService(
-    IServiceScopeFactory scopeFactory,
-    ILogger<LibraryImportBackgroundService> logger,
+/// <summary>
+/// Checks the download status of torrents and imports the files to the library folder if necessary
+/// </summary>
+public class LibraryImportJob(
     SettingsService settingsService,
-    IDownloadService dlService,
-    SnackMessageBus snackBus) : BackgroundService
+    SnackMessageBus snackBus,
+    ILogger<LibraryImportJob> logger) : IJob
 {
-    private const int POOL_DELAY = 5000;
+    public TimeSpan Interval => TimeSpan.FromSeconds(5);
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public async Task ExecuteAsync(IServiceScope scope, CancellationToken cancellationToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            using var scope = scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetService<LibrarrDbContext>()!;
+        var db = scope.ServiceProvider.GetRequiredService<LibrarrDbContext>();
 
-            await UpdateTorrents(db);
-
-            await db.SaveChangesAsync(stoppingToken);
-
-            await CheckTorrents(db);
-
-            await db.SaveChangesAsync(stoppingToken);
-
-            await Task.Delay(POOL_DELAY, stoppingToken);
-        }
-    }
-
-    private async Task UpdateTorrents(LibrarrDbContext db)
-    {
-        // We only update the status of non-imported torrents
-        var filesToCheck = db.Files
-            .Where(t => t.Status == LibraryFile.DownloadStatus.Downloading ||
-                        t.Status == LibraryFile.DownloadStatus.Pending)
-            .Where(t => t.TorrentHash != null);
-        var hashes = filesToCheck.Select(t => t.TorrentHash).OfType<string>();
-
-        if (!await hashes.AnyAsync()) return;
-
-        logger.LogInformation("Querying QBT for torrent status");
-
-        var torrents = (await dlService.GetTorrents(hashes)).ToFrozenDictionary(t => t.Hash);
-
-        logger.LogInformation($"QBT responded with {torrents.Count} torrents");
-
-        await foreach (var file in filesToCheck.AsAsyncEnumerable())
-        {
-            if (torrents.TryGetValue(file.TorrentHash!, out var torrentItem))
-            {
-                file.SourcePath = torrentItem.Path;
-                var newStatus = torrentItem.DownloadCompleted
-                    ? LibraryFile.DownloadStatus.Downloaded
-                    : LibraryFile.DownloadStatus.Downloading;
-                if (file.Status != newStatus)
-                {
-                    file.Status = newStatus;
-                    logger.LogInformation(
-                        $"Updated torrent status to {file.Status}: {file.TorrentHash}");
-                }
-            }
-            else
-            {
-                // Torrent was deleted from download client
-                file.Status = LibraryFile.DownloadStatus.Failed; // TODO: Should we have a separate Missing status?
-                logger.LogWarning($"Missing torrent: {file.TorrentHash}");
-            }
-
-            db.Files.Update(file);
-        }
-    }
-
-    private async Task CheckTorrents(LibrarrDbContext db)
-    {
         var profileSettings = settingsService.GetSettings<ProfileSettingsData>();
         var librarySettings = settingsService.GetSettings<LibrarySettingsData>();
 
@@ -94,11 +33,12 @@ public class LibraryImportBackgroundService(
                            .Where(b => b.Status == LibraryFile.DownloadStatus.Downloaded)
                            .Include(lf => lf.Book)
                            .ThenInclude(b => b.Author)
-                           .AsAsyncEnumerable())
+                           .AsAsyncEnumerable().WithCancellation(cancellationToken))
         {
             try
             {
                 TryImportTorrent(libraryFile, profileSettings.GetProfile(libraryFile.Type), librarySettings, db);
+                await db.SaveChangesAsync(cancellationToken);
             }
             catch (Exception e)
             {
@@ -107,8 +47,8 @@ public class LibraryImportBackgroundService(
         }
     }
 
-    private void TryImportTorrent(LibraryFile libraryFile,
-        ProfileSettingsData.Profile profile, LibrarySettingsData librarySettings, LibrarrDbContext db)
+    private void TryImportTorrent(LibraryFile libraryFile, ProfileSettingsData.Profile profile,
+        LibrarySettingsData librarySettings, LibrarrDbContext db)
     {
         // snackBus.ShowInfo($"Importing release: {libraryFile.TorrentHash} for book: {libraryFile.Book.Title}");
         logger.LogInformation($"Importing release: {libraryFile.TorrentHash} for book: {libraryFile.Book.Title}");

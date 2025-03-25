@@ -4,6 +4,7 @@ using Librarr.Components;
 using Librarr.Data;
 using Librarr.Services;
 using Librarr.Services.Download;
+using Librarr.Services.Jobs;
 using Librarr.Services.Metadata;
 using Librarr.Services.ReleaseSearch;
 using Librarr.Settings;
@@ -86,7 +87,6 @@ builder.Services.AddSqlite<LibrarrDbContext>($"Data Source={dbFile}", null,
 // App Services
 // ------------------------------------------
 
-builder.Services.AddHostedService<LibraryImportBackgroundService>();
 builder.Services.AddSingleton<SettingsService>(sp => new SettingsService(
     sp.GetRequiredService<ILogger<SettingsService>>(),
     settingsDir
@@ -94,6 +94,11 @@ builder.Services.AddSingleton<SettingsService>(sp => new SettingsService(
 builder.Services.AddSingleton<GrabService>();
 builder.Services.AddSingleton<SnackMessageBus>();
 builder.Services.AddScoped<LibraryService>();
+
+// Jobs
+builder.Services.AddSingleton<IJob, UpdateTorrentsStatusJob>();
+builder.Services.AddSingleton<IJob, LibraryImportJob>();
+builder.Services.AddHostedService<JobsBackgroundService>();
 
 
 // ------------------------------------------
