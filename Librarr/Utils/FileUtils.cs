@@ -1,4 +1,5 @@
-using System.Text;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Librarr.Utils;
 
@@ -21,5 +22,47 @@ public static class FileUtils
         }
 
         return result;
+    }
+    
+    public static bool CreateHardLink(string sourcePath, string destinationPath)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return CreateHardLinkWindows(destinationPath, sourcePath, IntPtr.Zero);
+        }
+        else
+        {
+            return CreateHardLinkUnix(sourcePath, destinationPath);
+        }
+    }
+
+    [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern bool CreateHardLinkWindows(string lpFileName, string lpExistingFileName, IntPtr lpSecurityAttributes);
+
+    private static bool CreateHardLinkUnix(string sourcePath, string destinationPath)
+    {
+        try
+        {
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "/bin/ln",
+                    Arguments = $"\"{sourcePath}\" \"{destinationPath}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                }
+            };
+            process.Start();
+            process.WaitForExit();
+
+            return process.ExitCode == 0;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

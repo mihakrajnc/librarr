@@ -115,7 +115,14 @@ public class LibraryImportJob(
         foreach (var sourceFile in sourceFiles)
         {
             var destinationFile = Path.Combine(destinationDir.FullName, Path.GetFileName(sourceFile));
-            File.Copy(sourceFile, destinationFile, true);
+            if (librarySettings.CreateHardLinks)
+            {
+                FileUtils.CreateHardLink(sourceFile, destinationFile);
+            }
+            else
+            {
+                File.Copy(sourceFile, destinationFile, true);
+            }
             destinationFiles.Add(destinationFile);
         }
 

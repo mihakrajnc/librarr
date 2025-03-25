@@ -12,11 +12,13 @@
     <DataAnnotationsValidator/>
 
     <MudStack Spacing="2">
-        <MudTextField Label="Library Path" Variant="Variant.Filled" @bind-Value="@_settings.LibraryPath"
+        <MudTextField Label="Library Path" Variant="Variant.Filled" @bind-Value="_settings.LibraryPath"
                       InputType="InputType.Text"
                       For="() => _settings.LibraryPath"
                       HelperText="The path to your library folder, e.g. /mnt/media/movies"
                       T="string"/>
+
+        <MudCheckBox Label="Hardlinks" @bind-Value="_settings.CreateHardLinks" For="() => _settings.CreateHardLinks"/>
 
         <MudButton ButtonType="ButtonType.Submit" OnClick="OnSaveClicked" Variant="Variant.Filled" FullWidth="true"
                    Color="Color.Primary"
@@ -37,7 +39,7 @@
     private void OnSaveClicked()
     {
         SettingsService.SaveSettings(_settings);
-        
+
         Logger.LogInformation("Library settings saved");
     }
 
