@@ -1,9 +1,8 @@
 ﻿@page "/"
-@using Librarr.Data
 @using Librarr.Model
-@using Microsoft.EntityFrameworkCore
+@using Librarr.Services
 
-@inject LibrarrDbContext db;
+@inject LibraryService Library
 
 <PageTitle>Home</PageTitle>
 
@@ -14,7 +13,7 @@
     {
         <MudItem>
             <MudCard Style="max-width: 200px;">
-                <MudCardMedia Image="@book.CoverURL"Height="175"/>
+                <MudCardMedia Image="@book.CoverURL" Height="175"/>
                 <MudCardContent>
                     <MudText Typo="Typo.subtitle1" Class="mb-3">
                         @book.Title
@@ -38,7 +37,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _books = await db.Books.Include(b => b.Author).ToListAsync();
+        _books = await Library.GetBooks();
     }
-
 }

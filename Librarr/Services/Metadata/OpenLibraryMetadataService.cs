@@ -149,7 +149,6 @@ public class OpenLibraryMetadataService(HttpClient httpClient, ILogger<OpenLibra
             string[] subject_people,
             string key,
             string[] subject_times,
-            Type type,
             int latest_revision,
             int revision,
             string? first_publish_date

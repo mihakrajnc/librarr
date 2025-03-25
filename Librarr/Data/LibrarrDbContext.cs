@@ -69,34 +69,4 @@ public class LibrarrDbContext(DbContextOptions options) : DbContext(options)
         configurationBuilder.Properties<Enum>()
             .HaveConversion<string>();
     }
-
-    // TODO: Should this be here?
-    public async Task<Book> AddBook(BookSearchItem bookItem, bool ebook, bool audiobook)
-    {
-        var authorName = bookItem.AuthorName;
-        var authorKey = bookItem.AuthorID;
-
-        var author = Authors.FirstOrDefault(a => a.OLID == authorKey) ?? Authors.Add(new Author
-        {
-            OLID = authorKey,
-            Name = authorName
-        }).Entity;
-
-        var bookEntry = new Book
-        {
-            OLID = bookItem.ID,
-            Title = bookItem.Title,
-            Author = author,
-            FirstPublishYear = bookItem.PublishYear,
-            EBookWanted = ebook,
-            AudiobookWanted = audiobook,
-            CoverURL = bookItem.CoverURL
-        };
-
-        Books.Add(bookEntry);
-
-        await SaveChangesAsync();
-
-        return bookEntry;
-    }
 }

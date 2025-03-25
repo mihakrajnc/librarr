@@ -1,14 +1,11 @@
 ﻿@page "/books"
 @using Librarr.Components.Dialogs
-@using Librarr.Data
 @using Librarr.Model
 @using Librarr.Services
-@using Microsoft.EntityFrameworkCore
 
-@inject ILogger<Search>  Logger;
-@inject LibrarrDbContext db
-@inject GrabService      GrabService
-@inject IDialogService   DialogService
+@inject GrabService     GrabService
+@inject IDialogService  DialogService
+@inject LibraryService  Library
 
 <PageTitle>Books</PageTitle>
 
@@ -81,21 +78,8 @@
     protected override async Task OnInitializedAsync()
     {
         _loading = true;
-        try
-        {
-            _books = await db.Books
-                .Include(b => b.Author)
-                .Include(b => b.Files)
-                .ToListAsync();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError($"Failed to load books: {ex.Message}");
-        }
-        finally
-        {
-            _loading = false;
-        }
+        _books = await Library.GetBooks();
+        _loading = false;
     }
 
     private static LibraryFile.DownloadStatus GetLowestStatus(Book book)
@@ -133,9 +117,12 @@
 
     private async Task RemoveBook(Book book)
     {
-        db.Books.Remove(book);
-        _books.Remove(book);
-        await db.SaveChangesAsync();
+        var success = await Library.DeleteBook(book.Id);
+
+        if (success)
+        {
+            _books.Remove(book);
+        }
     }
 
 }

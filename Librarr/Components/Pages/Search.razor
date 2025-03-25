@@ -2,12 +2,13 @@
 
 @using Librarr.Components.Dialogs
 @using Librarr.Data
+@using Librarr.Services
 @using Librarr.Services.Metadata
 
 @inject IMetadataService MetadataService
-@inject LibrarrDbContext DB
 @inject IDialogService   DialogService
 @inject ILogger<Search>  Logger
+@inject LibraryService   Library
 
 <PageTitle>Book Search</PageTitle>
 
@@ -71,15 +72,22 @@
 
     private async Task OnAddClicked(BookSearchItem book)
     {
-        await DialogService.ShowAsync<AddBookDialog>("Add book", new DialogParameters<AddBookDialog>
+        var dialog = await DialogService.ShowAsync<AddBookDialog>("Add book", new DialogParameters<AddBookDialog>
         {
             { x => x.Book, book }
         });
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            StateHasChanged();
+        }
     }
 
     private bool IsBookAlreadyAdded(BookSearchItem book)
     {
-        return DB.Books.Any(b => b.OLID == book.ID);
+        return Library.BookExists(book.ID);
     }
 
 }

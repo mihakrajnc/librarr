@@ -1,13 +1,12 @@
 @page "/authors/{Id:int}"
+
 @using Librarr.Components.Dialogs
-@using Librarr.Data
+@using Librarr.Services
 @using Librarr.Services.Metadata
-@using Microsoft.EntityFrameworkCore
 
 @inject IMetadataService MetadataService
-@inject LibrarrDbContext db
 @inject IDialogService   DialogService
-@inject ILogger<Search>  Logger
+@inject LibraryService   Library
 
 <PageTitle>Author Details</PageTitle>
 
@@ -41,8 +40,6 @@
 @code {
     [Parameter] public int Id { get; set; }
 
-    private readonly CancellationTokenSource _cts = new();
-
     private bool _loading;
 
     private BookSearchItem[] _searchResults = [];
@@ -50,10 +47,13 @@
     protected override async Task OnInitializedAsync()
     {
         _loading = true;
-        
-        var author = await db.Authors.FirstAsync(a => a.Id == Id);
 
-        _searchResults = await MetadataService.FetchAuthorBooks(author.OLID, author.Name);
+        var author = await Library.GetAuthor(Id);
+
+        if (author != null)
+        {
+            _searchResults = await MetadataService.FetchAuthorBooks(author.OLID, author.Name);
+        } // TODO: Handle error (null) case
 
         _loading = false;
     }
@@ -66,10 +66,9 @@
         });
     }
 
-
     private bool IsBookAlreadyAdded(BookSearchItem book)
     {
-        return db.Books.Any(b => b.OLID == book.ID);
+        return Library.BookExists(book.ID);
     }
 
 }

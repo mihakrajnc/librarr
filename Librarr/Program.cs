@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Text.Json.Serialization;
 using Librarr.Components;
 using Librarr.Data;
 using Librarr.Services;
@@ -6,6 +7,7 @@ using Librarr.Services.Download;
 using Librarr.Services.Metadata;
 using Librarr.Services.ReleaseSearch;
 using Librarr.Settings;
+using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using MudBlazor.Services;
 
@@ -35,8 +37,10 @@ builder.Services.AddRazorComponents()
 // ------------------------------------------
 // Controllers
 // ------------------------------------------
-builder.Services.AddControllers();
-
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+});
 
 // ------------------------------------------
 // Authentication & Authorization
@@ -89,6 +93,7 @@ builder.Services.AddSingleton<SettingsService>(sp => new SettingsService(
 ));
 builder.Services.AddSingleton<GrabService>();
 builder.Services.AddSingleton<SnackMessageBus>();
+builder.Services.AddScoped<LibraryService>();
 
 
 // ------------------------------------------
