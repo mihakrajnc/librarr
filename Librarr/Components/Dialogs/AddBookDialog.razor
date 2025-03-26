@@ -51,6 +51,8 @@
     protected override async Task OnInitializedAsync()
     {
         _metadata = await MetadataService.FetchBookMetadata(Book.ID);
+        
+        Logger.LogInformation("Adding book: {@Book}", _metadata);
     }
 
     private async Task OnAddBookClicked()

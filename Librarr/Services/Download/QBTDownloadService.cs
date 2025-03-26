@@ -11,6 +11,8 @@ public class QBTDownloadService(HttpClient httpClient, SettingsService ss, ILogg
 
     public async Task AddTorrent(byte[] torrentData, string torrentHash)
     {
+        logger.LogInformation("Adding torrent to QBT: {Hash}", torrentHash);
+
         var qbtSettings = ss.GetSettings<QBTSettingsData>();
 
         // Add torrent to QBT
@@ -29,20 +31,23 @@ public class QBTDownloadService(HttpClient httpClient, SettingsService ss, ILogg
 
         if (!addResponse.IsSuccessStatusCode)
         {
-            logger.LogError($"Failed to add torrent: {addResponse.StatusCode}");
+            logger.LogError("Failed to add torrent {Hash}, status code was {StatusCode}", torrentHash,
+                addResponse.StatusCode);
             throw new Exception($"Failed to add torrent: {addResponse.StatusCode}");
         }
 
-        logger.LogInformation($"Added torrent with hash: {torrentHash}");
+        logger.LogInformation("Torrent sent to QBT successfully: {Hash}", torrentHash);
     }
 
-    public async Task<TorrentItem[]> GetTorrents(IEnumerable<string> hashes)
+    public async Task<TorrentItem[]> FetchTorrents(IEnumerable<string> hashes)
     {
+        logger.LogInformation("Fetching torrents from QBT: {Hashes}", hashes);
+
         var response = await httpClient.GetAsync($"{INFO_API}?hashes={string.Join('|', hashes)}");
 
         if (!response.IsSuccessStatusCode)
         {
-            logger.LogError($"Failed to fetch torrents: {response.StatusCode}");
+            logger.LogError("Failed to fetch torrents, status code was {StatusCode}", response.StatusCode);
             throw new Exception($"Failed to fetch torrents: {response.StatusCode}");
         }
 
@@ -52,17 +57,17 @@ public class QBTDownloadService(HttpClient httpClient, SettingsService ss, ILogg
 
     public async Task<bool> TestConnection()
     {
-        logger.LogError($"Testing QBT connection.");
+        logger.LogInformation("Testing QBT connection.");
 
         var response = await httpClient.GetAsync(VERSION_API);
 
         if (!response.IsSuccessStatusCode)
         {
-            logger.LogError($"Test failed: {response.StatusCode}");
+            logger.LogError("QBT connection test failed with status code: {StatusCode}", response.StatusCode);
             return false;
         }
 
-        logger.LogError($"Test succeeded, response: {await response.Content.ReadAsStringAsync()}");
+        logger.LogInformation("Test succeeded with response: {Response}", await response.Content.ReadAsStringAsync());
         return true;
     }
 }

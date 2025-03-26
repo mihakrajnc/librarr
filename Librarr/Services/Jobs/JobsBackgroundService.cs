@@ -19,6 +19,7 @@ public class JobsBackgroundService(
         }
 
         // Start a task for each job and run them concurrently.
+        logger.LogInformation("Jobs background service started");
         await Task.WhenAll(jobs.Select(job => RunJobAsync(job, stoppingToken)));
     }
 

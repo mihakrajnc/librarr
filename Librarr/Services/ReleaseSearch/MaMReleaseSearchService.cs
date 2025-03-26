@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using BencodeNET.Parsing;
 using BencodeNET.Torrents;
 using Librarr.Model;
+using Serilog.Context;
 
 namespace Librarr.Services.ReleaseSearch;
 
@@ -15,46 +16,55 @@ public class MaMReleaseSearchService(HttpClient httpClient, ILogger<MaMReleaseSe
 
     public async Task<ReleaseSearchItem[]> Search(string bookName, bool ebooks, bool audiobooks)
     {
-        var requestData = new List<KeyValuePair<string, string>>
+        using (LogContext.PushProperty("BookName", bookName))
         {
-            new("tor[sortType]", "default"),
-            new("tor[startNumber]", "0"),
-            new("tor[searchType]", "active"), // TODO: Add vip filtering too
-            new("dlLink", ""),
-            new("description", ""),
-            new("perpage", "100"), // TODO: Add pagination if more than 100 results
-            new("tor[text]", bookName),
+            // All logs within this block include the RequestId property
+            logger.LogInformation("Started book search.");
+
+
+            var requestData = new List<KeyValuePair<string, string>>
+            {
+                new("tor[sortType]", "default"),
+                new("tor[startNumber]", "0"),
+                new("tor[searchType]", "active"), // TODO: Add vip filtering too
+                new("dlLink", ""),
+                new("description", ""),
+                new("perpage", "100"), // TODO: Add pagination if more than 100 results
+                new("tor[text]", bookName),
+            };
+
+            if (ebooks)
+                requestData.Add(new("tor[main_cat][]", "14"));
+            if (audiobooks)
+                requestData.Add(new("tor[main_cat][]", "13"));
+
+            var content = new FormUrlEncodedContent(requestData);
+            var request = new HttpRequestMessage(HttpMethod.Post, SEARCH_API_URL)
+            {
+                Content = content
+            };
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
+            request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("deflate"));
+            request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("br"));
+            request.Headers.UserAgent.Add(new ProductInfoHeaderValue("Librarr", "0.1"));
+
+            var response = await httpClient.SendAsync(request);
             
-        };
+            logger.LogInformation("Request done with {StatusCode}", response.StatusCode);
 
-        if (ebooks)
-            requestData.Add(new("tor[main_cat][]", "14"));
-        if (audiobooks)
-            requestData.Add(new("tor[main_cat][]", "13"));
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogError($"Failed to find torrents: {response.StatusCode}");
+                throw new Exception($"Failed to find torrents: {response.StatusCode}");
+            }
 
-        var content = new FormUrlEncodedContent(requestData);
-        var request = new HttpRequestMessage(HttpMethod.Post, SEARCH_API_URL)
-        {
-            Content = content
-        };
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
-        request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("deflate"));
-        request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("br"));
-        request.Headers.UserAgent.Add(new ProductInfoHeaderValue("Librarr", "0.1"));
 
-        var response = await httpClient.SendAsync(request);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            logger.LogError($"Failed to find torrents: {response.StatusCode}");
-            throw new Exception($"Failed to find torrents: {response.StatusCode}");
+            return (await response.Content.ReadFromJsonAsync<MaMSearchResponse>())
+                ?.data
+                .Select(r => r.ToReleaseSearchItem())
+                .ToArray() ?? [];
         }
-
-        return (await response.Content.ReadFromJsonAsync<MaMSearchResponse>())
-            ?.data
-            .Select(r => r.ToReleaseSearchItem())
-            .ToArray() ?? [];
     }
 
     public async Task<(byte[] data, string hash)> DownloadTorrentFile(string downloadUrl)
@@ -73,6 +83,7 @@ public class MaMReleaseSearchService(HttpClient httpClient, ILogger<MaMReleaseSe
         var torrentHash = new BencodeParser().Parse<Torrent>(torrentData).OriginalInfoHash.ToLowerInvariant();
 
         logger.LogInformation($"Downloaded torrent with hash: {torrentHash}");
+
 
         return (torrentData, torrentHash);
     }

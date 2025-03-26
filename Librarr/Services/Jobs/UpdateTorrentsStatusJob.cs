@@ -22,15 +22,15 @@ public class UpdateTorrentsStatusJob(IDownloadService dlService, ILogger<UpdateT
             .Where(t => t.Status == LibraryFile.DownloadStatus.Downloading ||
                         t.Status == LibraryFile.DownloadStatus.Pending)
             .Where(t => t.TorrentHash != null);
-        var hashes = filesToCheck.Select(t => t.TorrentHash).OfType<string>();
+        var hashes = await filesToCheck.Select(t => t.TorrentHash).OfType<string>().ToListAsync(cancellationToken);
 
-        if (!await hashes.AnyAsync(cancellationToken)) return;
+        if (hashes.Count == 0) return;
 
-        logger.LogInformation("Querying QBT for torrent status");
+        logger.LogInformation("Fetching torrent status");
 
-        var torrents = (await dlService.GetTorrents(hashes)).ToFrozenDictionary(t => t.Hash);
+        var torrents = (await dlService.FetchTorrents(hashes)).ToFrozenDictionary(t => t.Hash);
 
-        logger.LogInformation($"QBT responded with {torrents.Count} torrents");
+        logger.LogInformation("Found status for {ResponseCount}/{RequestCount} torrents", torrents.Count, hashes.Count);
 
         await foreach (var file in filesToCheck.AsAsyncEnumerable().WithCancellation(cancellationToken))
         {
@@ -43,15 +43,14 @@ public class UpdateTorrentsStatusJob(IDownloadService dlService, ILogger<UpdateT
                 if (file.Status != newStatus)
                 {
                     file.Status = newStatus;
-                    logger.LogInformation(
-                        $"Updated torrent status to {file.Status}: {file.TorrentHash}");
+                    logger.LogInformation("Updated torrent {Hash} status to {Status}", file.TorrentHash, file.Status);
                 }
             }
             else
             {
                 // Torrent was deleted from download client
                 file.Status = LibraryFile.DownloadStatus.Failed; // TODO: Should we have a separate Missing status?
-                logger.LogWarning($"Missing torrent: {file.TorrentHash}");
+                logger.LogWarning("Missing torrent {Hash}", file.TorrentHash);
             }
 
             db.Files.Update(file);

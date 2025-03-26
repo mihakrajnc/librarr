@@ -8,9 +8,9 @@ using Librarr.Services.Jobs;
 using Librarr.Services.Metadata;
 using Librarr.Services.ReleaseSearch;
 using Librarr.Settings;
-using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using MudBlazor.Services;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -79,8 +79,7 @@ Directory.CreateDirectory(settingsDir);
 // ------------------------------------------
 
 var dbFile = Path.Combine(configDir, "librarr.sqlite");
-builder.Services.AddSqlite<LibrarrDbContext>($"Data Source={dbFile}", null,
-    options => { options.LogTo(Console.WriteLine, LogLevel.Warning); });
+builder.Services.AddSqlite<LibrarrDbContext>($"Data Source={dbFile}");
 
 
 // ------------------------------------------
@@ -99,6 +98,9 @@ builder.Services.AddScoped<LibraryService>();
 builder.Services.AddSingleton<IJob, UpdateTorrentsStatusJob>();
 builder.Services.AddSingleton<IJob, LibraryImportJob>();
 builder.Services.AddHostedService<JobsBackgroundService>();
+
+// Logging
+builder.Host.UseSerilog((context, cfg) => cfg.ReadFrom.Configuration(context.Configuration));
 
 
 // ------------------------------------------

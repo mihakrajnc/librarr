@@ -9,7 +9,6 @@ public class LibrarrDbContext(DbContextOptions options) : DbContext(options)
     public DbSet<Book>    Books    { get; set; }
     public DbSet<Author>  Authors  { get; set; }
     public DbSet<LibraryFile>    Files    { get; set; }
-    // public DbSet<Torrent> Torrents { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

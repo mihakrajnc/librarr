@@ -25,7 +25,7 @@ public class LibraryImportJob(
 
         if (librarySettings.LibraryPath == null)
         {
-            logger.LogInformation("No library path configured, skipping import");
+            logger.LogDebug("No library path configured, skipping import");
             return;
         }
 
@@ -42,7 +42,8 @@ public class LibraryImportJob(
             }
             catch (Exception e)
             {
-                logger.LogError(e, $"Failed to import ebook torrent: {libraryFile.Book.Title}");
+                logger.LogError(e, "Failed to import torrent {Hash} from {File}", libraryFile.TorrentHash,
+                    libraryFile.SourcePath);
             }
         }
     }
@@ -51,7 +52,8 @@ public class LibraryImportJob(
         LibrarySettingsData librarySettings, LibrarrDbContext db)
     {
         // snackBus.ShowInfo($"Importing release: {libraryFile.TorrentHash} for book: {libraryFile.Book.Title}");
-        logger.LogInformation($"Importing release: {libraryFile.TorrentHash} for book: {libraryFile.Book.Title}");
+        logger.LogInformation("Importing torrent: {Hash} for {BookTitle}", libraryFile.TorrentHash,
+            libraryFile.Book.Title);
 
         var contentPath = libraryFile.SourcePath!;
         var isDirectory = Directory.Exists(contentPath);
@@ -59,7 +61,7 @@ public class LibraryImportJob(
 
         if (!isDirectory && !isFile)
         {
-            logger.LogError($"Path does not exist: {contentPath}");
+            logger.LogError("Path does not exist: {Path}", contentPath);
             throw new Exception($"Path does not exist: {contentPath}");
         }
 
@@ -94,13 +96,13 @@ public class LibraryImportJob(
 
         if (sourceFormat == null || sourceFiles == null)
         {
-            logger.LogError(
-                $"Could not find file for book: {libraryFile.Book.Title} with format: {sourceFormat}, source: {contentPath}");
+            logger.LogError("Could not find file for book: {Title} with format: {Format}, source: {Path}",
+                libraryFile.Book.Title, sourceFormat, contentPath);
             throw new Exception(
                 $"Could not find file for book: {libraryFile.Book.Title} with format: {sourceFormat}, source: {contentPath}");
         }
 
-        logger.LogInformation($"Using source files: {string.Join(',', sourceFiles)}");
+        logger.LogInformation("Using source files: {Files}", string.Join(',', sourceFiles));
 
         // Import book
         // TODO: Support hardlinks
@@ -123,6 +125,7 @@ public class LibraryImportJob(
             {
                 File.Copy(sourceFile, destinationFile, true);
             }
+
             destinationFiles.Add(destinationFile);
         }
 
@@ -135,6 +138,6 @@ public class LibraryImportJob(
         db.Files.Update(libraryFile);
 
         snackBus.ShowInfo($"Imported book: {libraryFile.Book.Title} to {destinationDir.FullName}");
-        logger.LogInformation($"Imported book: {libraryFile.Book.Title} to {destinationDir.FullName}");
+        logger.LogInformation("Imported {Book} to {Directory}", libraryFile.Book.Title, destinationDir.FullName);
     }
 }

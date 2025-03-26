@@ -15,10 +15,12 @@ public class SettingsService(ILogger<SettingsService> logger, string settingsDir
         {
             var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(filePath, json);
+
+            logger.LogInformation("Settings {Type} saved to: {Path}", typeof(T).Name, filePath);
         }
         catch (Exception ex)
         {
-            logger.LogError($"Error saving settings for {typeof(T).Name}: {ex.Message}");
+            logger.LogError(ex, "Error saving settings for {Type}", typeof(T).Name);
         }
     }
 
@@ -35,11 +37,11 @@ public class SettingsService(ILogger<SettingsService> logger, string settingsDir
         }
         catch (Exception ex)
         {
-            logger.LogError($"Error retrieving settings for {typeof(T).Name}: {ex.Message}");
+            logger.LogError(ex, "Error retrieving settings for {Type}", typeof(T).Name);
         }
 
         return new T();
     }
 
-    private  string GetFilePath<T>() =>
-        Path.Combine(settingsDir, $"{typeof(T).Name.ToLowerInvariant()}.json");}
+    private string GetFilePath<T>() => Path.Combine(settingsDir, $"{typeof(T).Name.ToLowerInvariant()}.json");
+}
