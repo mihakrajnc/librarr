@@ -59,7 +59,9 @@
             <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search"
                     OnClick="() => SearchAutomatic(context)" Size="Size.Small"/>
             <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonSearch"
-                    OnClick="() => SearchManual(context)" Size="Size.Small"/>
+                    OnClick="() => SearchManual(context, false)" Size="Size.Small"/>
+            <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.BluetoothSearching"
+                    OnClick="() => SearchManual(context, true)" Size="Size.Small"/>
             <MudFab Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="() => RemoveBook(context)"
                     Size="Size.Small"/>
         </MudTd>
@@ -107,11 +109,12 @@
         await GrabService.SearchForBook(book);
     }
 
-    private async Task SearchManual(Book book)
+    private async Task SearchManual(Book book, bool audiobook)
     {
         await DialogService.ShowAsync<ManualSearchDialog>("Pick release", new DialogParameters<ManualSearchDialog>
         {
-            { x => x.Book, book }
+            { x => x.Book, book },
+            { x => x.Audiobook, audiobook },
         });
     }
 

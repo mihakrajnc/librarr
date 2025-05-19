@@ -74,7 +74,7 @@ public class OpenLibraryMetadataService(HttpClient httpClient, ILogger<OpenLibra
 
         var responseData = await response.Content.ReadFromJsonAsync<OpenLibraryWorkResponse>(ct);
 
-        return new BookMetadata(responseData?.description.value ?? "Missing description"); // TODO: Maybe do this better
+        return new BookMetadata(responseData?.description?.value ?? "Missing description"); // TODO: Maybe do this better
     }
 
     private BookSearchItem? ParseBookSearchItem(OpenLibrarySearchResponse.Document doc)
@@ -84,6 +84,7 @@ public class OpenLibraryMetadataService(HttpClient httpClient, ILogger<OpenLibra
             return new BookSearchItem(
                 doc.key.Replace("/works/", ""),
                 doc.title,
+                doc.subtitle,
                 doc.author_name.First(),
                 doc.author_key.First(),
                 doc.first_publish_year,
@@ -105,6 +106,7 @@ public class OpenLibraryMetadataService(HttpClient httpClient, ILogger<OpenLibra
             return new BookSearchItem(
                 doc.key.Replace("/works/", ""),
                 doc.title,
+                doc.subtitle,
                 authorName,
                 authorKey,
                 int.Parse(doc.first_publish_date ?? "0"),
@@ -127,6 +129,7 @@ public class OpenLibraryMetadataService(HttpClient httpClient, ILogger<OpenLibra
         public record Document(
             string key,
             string title,
+            string? subtitle,
             string[] author_key,
             string[] author_name,
             string cover_edition_key,
@@ -143,6 +146,7 @@ public class OpenLibraryMetadataService(HttpClient httpClient, ILogger<OpenLibra
         public record Entry(
             object description,
             string title,
+            string? subtitle, // TODO DOuble check this (use caroline peckham)
             int[] covers,
             string[] subject_places,
             string[] subjects,

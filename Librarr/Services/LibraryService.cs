@@ -51,6 +51,7 @@ public class LibraryService(LibrarrDbContext db, ILogger<LibraryService> logger)
         {
             OLID = bookItem.ID,
             Title = bookItem.Title,
+            Subtitle = bookItem.Subtitle,
             Author = author,
             FirstPublishYear = bookItem.PublishYear,
             EBookWanted = ebook,

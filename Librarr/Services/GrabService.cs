@@ -19,7 +19,7 @@ public class GrabService(
         logger.LogInformation($"Searching for {book.Title}");
         snackBus.ShowInfo($"Searching for {book.Title}");
 
-        var searchTerm = book.Title; // + " by " + book.Author.Name;
+        var searchTerm = book.Subtitle ?? book.Title; // TODO: Is this subtitle nonsense ok? Had to do it for zodiac academy
         var ebookWanted = book.EBookWanted;
         var audiobooksWanted = book.AudiobookWanted;
         var profileSettings = settingsService.GetSettings<ProfileSettingsData>();
@@ -31,35 +31,28 @@ public class GrabService(
 
         if (ebookWanted)
         {
-            var hash = await PickAndGrabRelease(book, searchItems, profileSettings.EBookProfile,
-                profileSettings.Language);
-            if (hash != null)
-            {
-                book.Files.Add(new LibraryFile
-                {
-                    Book = book,
-                    Status = LibraryFile.DownloadStatus.Pending,
-                    TorrentHash = hash,
-                    Type = LibraryFile.FileType.Ebook
-                });
-            }
+            await PickAndGrabRelease(book, searchItems, profileSettings.EBookProfile, profileSettings.Language, false);
         }
 
         if (audiobooksWanted)
         {
-            var hash = await PickAndGrabRelease(book, searchItems, profileSettings.AudiobookProfile,
-                profileSettings.Language);
-            if (hash != null)
-            {
-                book.Files.Add(new LibraryFile
-                {
-                    Book = book,
-                    Status = LibraryFile.DownloadStatus.Pending,
-                    TorrentHash = hash,
-                    Type = LibraryFile.FileType.Audiobook
-                });
-            }
+            await PickAndGrabRelease(book, searchItems, profileSettings.AudiobookProfile, profileSettings.Language,
+                true);
         }
+    }
+
+    public async Task<string?> GrabItem(ReleaseSearchItem item, Book book, bool audiobook)
+    {
+        var (data, hash) = await releaseSearchService.DownloadTorrentFile(item.DownloadURL);
+        await dlService.AddTorrent(data, hash);
+
+        book.Files.Add(new LibraryFile
+        {
+            Book = book,
+            Status = LibraryFile.DownloadStatus.Pending,
+            TorrentHash = hash,
+            Type = audiobook ? LibraryFile.FileType.Audiobook : LibraryFile.FileType.Ebook
+        });
 
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<LibrarrDbContext>();
@@ -67,18 +60,12 @@ public class GrabService(
         db.Books.Update(book);
 
         await db.SaveChangesAsync();
-    }
-    
-    public async Task<string?> GrabItem(ReleaseSearchItem item)
-    {
-        var (data, hash) = await releaseSearchService.DownloadTorrentFile(item.DownloadURL);
-        await dlService.AddTorrent(data, hash);
 
         return hash;
     }
 
     private async Task<string?> PickAndGrabRelease(Book book, ReleaseSearchItem[] searchItems,
-        ProfileSettingsData.Profile profile, string language)
+        ProfileSettingsData.Profile profile, string language, bool audiobook)
     {
         var formatsSet = profile.Formats.Where(f => f.Enabled).Select(f => f.Name).ToHashSet();
 
@@ -114,7 +101,7 @@ public class GrabService(
             logger.LogInformation($"Selected release: {selectedItem.Title}");
             // snackBus.ShowInfo($"Selected release {selectedItem.Title}");
 
-            var hash = await GrabItem(selectedItem);
+            var hash = await GrabItem(selectedItem, book, audiobook);
 
             if (hash == null)
             {

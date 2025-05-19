@@ -30,6 +30,7 @@
 
 @code {
     [Parameter, EditorRequired] public required Book Book { get; set; }
+    [Parameter, EditorRequired] public required bool Audiobook { get; set; }
 
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
@@ -39,7 +40,7 @@
     protected override async Task OnInitializedAsync()
     {
         _loading = true;
-        _results = await ReleaseSearchService.Search(Book.Title, Book.EBookWanted, Book.AudiobookWanted);
+        _results = await ReleaseSearchService.Search(Book.Subtitle ?? Book.Title, !Audiobook, Audiobook);
         _loading = false;
     }
 
@@ -47,7 +48,7 @@
 
     private async Task OnGrabClicked(ReleaseSearchItem searchItem)
     {
-        await GrabService.GrabItem(searchItem);
+        await GrabService.GrabItem(searchItem, Book, Audiobook);
         Close();
     }
 
