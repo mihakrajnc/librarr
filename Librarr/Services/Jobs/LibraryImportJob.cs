@@ -72,7 +72,9 @@ public class LibraryImportJob(
         {
             foreach (var format in profile.Formats.Where(f => f.Enabled))
             {
-                var files = Directory.GetFiles(contentPath, $"*.{format.Name}", SearchOption.AllDirectories);
+                var files = Directory.GetFiles(contentPath, "*.*", SearchOption.AllDirectories)
+                    .Where(f => f.EndsWith($".{format.Name}", StringComparison.OrdinalIgnoreCase))
+                    .ToArray();
                 if (files.Length > 0)
                 {
                     sourceFiles = files;
